@@ -1,0 +1,32 @@
+{
+    "manifest_version": 2,
+    "default_locale": "en",
+    "name": "__MSG_appName__",
+    "version": "2.2",
+    "description": "__MSG_appDesc__",
+    "icons": {
+        "48": "icons/minip-48.png",
+        "96": "icons/minip-96.png",
+        "128": "icons/minip-128.png"
+    },
+    "applications": {
+        "gecko": {
+            "id": "minipixiv.ext@gmail.com",
+            "strict_min_version": "57.0a1"
+        }
+    },
+    "permissions": [
+        "storage",
+        "webRequest",
+        "webRequestBlocking",
+        "webNavigation",
+        "https://www.pixiv.net/*",
+        "https://s.pximg.net/*"
+    ],
+    "options_ui": {
+        "page": "options.html"
+    },
+    "background": {
+        "scripts": ["background.js"]
+    }
+}

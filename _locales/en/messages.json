@@ -1,0 +1,213 @@
+{
+
+  "appName": {
+    "message": "Mini Pixiv",
+    "description": ""
+  },
+
+  "appDesc": {
+    "message": "Make Pixiv light and fast. Display all images automatically.",
+    "description": ""
+  },
+
+  "appInfo": {
+    "message": "Features:<br>- Changes the layout to be simple and fast.<br>- Blocks bloatware scripts.<br>- Displays all images in a gallery automatically.<br>- Option to fit images to screen width and height.<br>- Option to load master images (low-res) or original images (hi-res) by default.<br>- Option to use a CDN for the images.<br>- Enforces link colors so you know which pages you have already visited (Firefox only).<br><br>The original Pixiv layout runs a lot of scripts in your browser. This makes it unresponsive, slow and overheats laptops.<br>The Mini Pixiv extension blocks these scripts and changes the layout, making it lighter and faster.<br><br>The extension supports illustration pages and member pages for now. Support for additional pages are in the works.<br><br>FREE 30 DAY TRIAL. You may need to Sign in to Chrome and turn on sync for your license to be loaded.",
+    "description": ""
+  },
+
+  "menuManage": {
+    "message": "Manage",
+    "description": ""
+  },
+
+  "menuMessages": {
+    "message": "Messages",
+    "description": ""
+  },
+
+  "menuBookmarks": {
+    "message": "Bookmarks",
+    "description": ""
+  },
+
+  "menuFeed": {
+    "message": "Feed",
+    "description": ""
+  },
+
+  "menuDiscovery": {
+    "message": "Discovery",
+    "description": ""
+  },
+
+  "menuOptions": {
+    "message": "Options",
+    "description": ""
+  },
+
+  "menuAccount": {
+    "message": "Account",
+    "description": ""
+  },
+
+  "menuLogout": {
+    "message": "Logout",
+    "description": ""
+  },
+
+  "loadingData": {
+    "message": "Loading data...",
+    "description": ""
+  },
+
+  "loadingFrames": {
+    "message": "Loading $FRAMES$ frames / $MB$ MB...",
+    "description": "",
+    "placeholders": {
+      "frames": {
+        "content": "$1",
+        "example": "30"
+      },
+      "mb": {
+        "content": "$2",
+        "example": "40"
+      }
+    }
+  },
+
+  "framesLoaded": {
+    "message": "$FRAMES$ frames / $MB$ MB",
+    "description": "",
+    "placeholders": {
+      "frames": {
+        "content": "$1",
+        "example": "30"
+      },
+      "mb": {
+        "content": "$2",
+        "example": "40"
+      }
+    }
+  },
+
+  "imageError": {
+    "message": "Timeout error.<br>Reloading image in <i>$TIMEOUT$</i> seconds...",
+    "description": "",
+    "placeholders": {
+      "timeout": {
+        "content": "$1",
+        "example": "30"
+      }
+    }
+  },
+
+  "buttonFollow": {
+    "message": "Follow",
+    "description": ""
+  },
+
+  "buttonFollowing": {
+    "message": "Following",
+    "description": ""
+  },
+
+  "buttonMore": {
+    "message": "More...",
+    "description": ""
+  },
+
+  "msgLoading": {
+    "message": "Loading...",
+    "description": ""
+  },
+
+  "optLoadMaster": {
+    "message": "Load master images (low-res) instead of original images (hi-res).",
+    "description": ""
+  },
+
+  "optFitImages": {
+    "message": "Fit images to screen width and height.",
+    "description": ""
+  },
+
+  "optUseCdn": {
+    "message": "Use a CDN for the images.",
+    "description": ""
+  },
+
+  "optCdnUrl": {
+    "message": "CDN URL",
+    "description": ""
+  },
+
+  "optCdnUrlInfo": {
+    "message": "Eg: https://myservice.mycdn.com<br>The base URL for the images will be replaced by the CDN URL.",
+    "description": ""
+  },
+
+  "optSave": {
+    "message": "Save options",
+    "description": ""
+  },
+
+  "msgOptionsSaved": {
+    "message": "Ok, options saved!",
+    "description": ""
+  },
+
+  "expiredTitle": {
+    "message": "Free trial expired",
+    "description": ""
+  },
+
+  "expiredText": {
+    "message": "To continue using the Mini Pixiv extension for Chrome, <a href='$STORE$'>please purchase it from the Chrome Web Store.</a><br><br>If you have already purchased the extension:<br><a href='#' id='sign'>Sign in to Chrome browser</a> with your Google account, turn on sync, and reload the page.<br>Chrome will update your license automatically.",
+    "description": "",
+    "placeholders": {
+      "store": {
+        "content": "$1",
+        "example": "https://store.com"
+      }
+    }
+  },
+
+  "noLicenseTitle": {
+    "message": "License error",
+    "description": ""
+  },
+
+  "noLicenseText": {
+    "message": "Could not load the license from the Chrome Web Store.<br><a href='#' id='sign'>Sign in to Chrome browser</a> with your Google account, turn on sync, and reload the page.<br>Chrome will load your license automatically.",
+    "description": "",
+    "placeholders": {
+      "store": {
+        "content": "$1",
+        "example": "https://store.com"
+      }
+    }
+  },
+
+  "helpText": {
+    "message": "To visit Pixiv without using the extension, disable or remove it from your browser.<br><br>Need help? Send email to $EMAIL$",
+    "description": "",
+    "placeholders": {
+      "email": {
+        "content": "$1",
+        "example": "email@email.com"
+      }
+    }
+  },
+
+  "msgTranslate": {
+    "message": "Help translate this extension to japanese. Please send email to $EMAIL$",
+    "description": "",
+    "placeholders": {
+      "email": {
+        "content": "$1",
+        "example": "email@email.com"
+      }
+    }
+  }
+
+}

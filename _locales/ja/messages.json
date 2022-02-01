@@ -1,0 +1,213 @@
+{
+
+  "appName": {
+    "message": "Mini Pixiv",
+    "description": ""
+  },
+
+  "appDesc": {
+    "message": "Pixivを軽量・高速にして、すべての画像を自動表示しましょう。",
+    "description": ""
+  },
+
+  "appInfo": {
+    "message": "特色:<br>- レイアウトをシンプルかつ高速に変更。<br>- ブロートウェアのスクリプトをブロック。<br>- すべての画像を自動的にギャラリーに表示。<br>- 画像を画面の幅と高さに合わせるオプション。<br>- デフォルトでマスター画像(低解像度)またはオリジナル画像(高解像度)をロードするオプション。<br>- 画像にＣＤＮを用いるオプション。<br>- 既に訪れたページが分かるようにリンクに色を適用(Ｆｉｒｅｆｏｘのみ)。<br><br>オリジナルのPixivのレイアウトではブラウザで多くのスクリプトが実行されています。これがノートパソコンの反応が鈍ったり、処理が遅くなったり、過熱したりする原因となります。<br>このMini Pixivエクステンションはこういったスクリプトをブロックし、レイアウトを変更して軽量かつ高速にします。<br><br>この拡張機能は現在、イラストページとメンバーページをサポートしています。その他のページのサポートに現在取り組んでおります。<br><br>30日間の無料トライアル。ライセンスがロードされるためにはChromeにサインインして同期を行う必要があるかもしれません。",
+    "description": ""
+  },
+
+  "menuManage": {
+    "message": "管理",
+    "description": ""
+  },
+
+  "menuMessages": {
+    "message": "メッセージ",
+    "description": ""
+  },
+
+  "menuBookmarks": {
+    "message": "ブックマーク",
+    "description": ""
+  },
+
+  "menuFeed": {
+    "message": "フィード",
+    "description": ""
+  },
+
+  "menuDiscovery": {
+    "message": "ディスカバリー",
+    "description": ""
+  },
+
+  "menuOptions": {
+    "message": "オプション",
+    "description": ""
+  },
+
+  "menuAccount": {
+    "message": "設定",
+    "description": ""
+  },
+
+  "menuLogout": {
+    "message": "ログアウト",
+    "description": ""
+  },
+
+  "loadingData": {
+    "message": "データをロードしています...",
+    "description": ""
+  },
+
+  "loadingFrames": {
+    "message": "$FRAMES$フレーム / $MB$MBをロードしています...",
+    "description": "",
+    "placeholders": {
+      "frames": {
+        "content": "$1",
+        "example": "30"
+      },
+      "mb": {
+        "content": "$2",
+        "example": "40"
+      }
+    }
+  },
+
+  "framesLoaded": {
+    "message": "$FRAMES$フレーム / $MB$MB",
+    "description": "",
+    "placeholders": {
+      "frames": {
+        "content": "$1",
+        "example": "30"
+      },
+      "mb": {
+        "content": "$2",
+        "example": "40"
+      }
+    }
+  },
+
+  "imageError": {
+    "message": "タイムアウトエラー。<br><i>$TIMEOUT$</i>秒で画像を再読み込みします...",
+    "description": "",
+    "placeholders": {
+      "timeout": {
+        "content": "$1",
+        "example": "30"
+      }
+    }
+  },
+
+  "buttonFollow": {
+    "message": "フォローする",
+    "description": ""
+  },
+
+  "buttonFollowing": {
+    "message": "フォロー中",
+    "description": ""
+  },
+
+  "buttonMore": {
+    "message": "さらに...",
+    "description": ""
+  },
+
+  "msgLoading": {
+    "message": "ロードしています...",
+    "description": ""
+  },
+
+  "optLoadMaster": {
+    "message": "オリジナル画像(高解像度)の代わりにマスター画像(低解像度)をロード。",
+    "description": ""
+  },
+
+  "optFitImages": {
+    "message": "画像を画面の縦横に合わせる。",
+    "description": ""
+  },
+
+  "optUseCdn": {
+    "message": "画像にCDNを使用する。",
+    "description": ""
+  },
+
+  "optCdnUrl": {
+    "message": "CDNのURL",
+    "description": ""
+  },
+
+  "optCdnUrlInfo": {
+    "message": "例: https://myservice.mycdn.com<br>画像の基本URLはCDNのURLで置き換えられます。",
+    "description": ""
+  },
+
+  "optSave": {
+    "message": "オプションの保存",
+    "description": ""
+  },
+
+  "msgOptionsSaved": {
+    "message": "Ok、オプションが保存されました!",
+    "description": ""
+  },
+
+  "expiredTitle": {
+    "message": "無料トライアルの有効期限が過ぎました",
+    "description": ""
+  },
+
+  "expiredText": {
+    "message": "ChromeでこのMini Pixivエクステンションを利用し続けるには、<a href='$STORE$'>Chromeのウェブストアから購入してください。</a><br><br>既にこの拡張機能購入している場合:<br><a href='#' id='sign'>Chromeのブラウザにグーグルアカウントでサインインして同期し</a>、ページを再読み込みしてください。<br>Chromeが自動的にライセンスを更新します。",
+    "description": "",
+    "placeholders": {
+      "store": {
+        "content": "$1",
+        "example": "https://store.com"
+      }
+    }
+  },
+
+  "noLicenseTitle": {
+    "message": "ライセンスエラー",
+    "description": ""
+  },
+
+  "noLicenseText": {
+    "message": "Chromeのウェブストアからライセンスをロードできませんでした。<br><a href='#' id='sign'>Chromeのブラウザへグーグルアカウントでサインインして同期し</a>、ページを再読み込みしてください。<br>Chromeが自動的にライセンスを更新します。",
+    "description": "",
+    "placeholders": {
+      "store": {
+        "content": "$1",
+        "example": "https://store.com"
+      }
+    }
+  },
+
+  "helpText": {
+    "message": "この拡張機能を用いずにPixivにアクセスするには、無効化するかブラウザから削除してください。<br><br>ヘルプが必要ですか? $EMAIL$までイーメールでお問い合わせください",
+    "description": "",
+    "placeholders": {
+      "email": {
+        "content": "$1",
+        "example": "email@email.com"
+      }
+    }
+  },
+
+  "msgTranslate": {
+    "message": "Help translate this extension to japanese. Please send email to $EMAIL$",
+    "description": "",
+    "placeholders": {
+      "email": {
+        "content": "$1",
+        "example": "email@email.com"
+      }
+    }
+  }
+
+}

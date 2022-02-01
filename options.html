@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        input[type=text] {
+            width: 60%;
+        }
+        button {
+            font-size: 114%;
+            padding: 0.4em 0.7em;
+            margin: 1em 1em 1em 0;
+        }
+        #result {
+            font-weight: bold;
+        }
+        #optCdnUrlInfo {
+            display: block;
+            font-style: italic;
+            opacity: 0.5;
+            margin-top: 0.2em;
+        }
+    </style>
+</head>
+<body>
+
+    <h2 id="menuOptions"></h2>
+
+    <form>
+
+        <p>
+            <input type="checkbox" id="loadMaster">
+            <label for="loadMaster" id="optLoadMaster"></label>
+        </p>
+
+        <p>
+            <input type="checkbox" id="fitImages">
+            <label for="fitImages" id="optFitImages"></label>
+        </p>
+
+        <p>
+            <input type="checkbox" id="useCdn">
+            <label for="useCdn" id="optUseCdn"></label>
+        </p>
+
+        <p>
+            <label for="cdnUrl" id="optCdnUrl"></label>
+            <input type="text" id="cdnUrl">
+            <br />
+            <span id="optCdnUrlInfo"></span>
+        </p>
+
+        <table><tr><td>
+            <button type="submit" id="optSave"></button>
+        </td><td>
+            <span id="result"></span>
+        </td></tr></table>
+    </form>
+
+<script src="purify.min.js"></script>
+<script src="options.js"></script>
+</body>
+</html>
