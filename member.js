@@ -10,6 +10,7 @@ if (document.location.href.indexOf('/bookmarks/') != -1) {
 }
 let pageFromUrl = new URLSearchParams(document.location.search).get('p');
 let page = (pageFromUrl == undefined ? 1 : parseInt(pageFromUrl));
+let tagFromUrl = new URLSearchParams(document.location.search).get('tag');
 let type = 'illust';
 if (document.location.href.indexOf('bookmarks') != -1) type = 'bookmark';
 let pageData = {
@@ -31,6 +32,7 @@ let pageData = {
         page: 1
     }
 };
+let tag_illustrations = {};
 let lang = '';
 if (document.location.href.indexOf("/en/") != -1) lang = '/en';
 
@@ -39,6 +41,60 @@ function decode(html) {
     var txt = document.createElement("textarea");
     txt.innerHTML = DOMPurify.sanitize(html);
     return txt.value;
+}
+
+function getTags() {
+    return content.fetch('/ajax/user/' + userId + '/illustmanga/tags', {
+            credentials: 'same-origin'
+        })
+        .then(r => r.json())
+        .then(r => r.body)
+        .then(data => {
+            pageData.tags = data.sort((a, b) => b.cnt - a.cnt);
+        });
+}
+
+function addTags(active_tag = null) {
+    let tag_box = document.getElementById('prof-tags')
+    tag_box.innerHTML = "";
+    for (let i = 0; i < Math.min(25, pageData?.tags?.length); i++) {
+        let tag_div = document.createElement('div')
+        let tag_text = pageData.tags[i].tag;
+        
+        tag_div.classList.add('prof-tag')
+        tag_div.innerHTML =`
+                <span class='tag-original'>${pageData.tags[i].tag}</span>
+                <span class='tag-trans'>${pageData.tags[i].tag_translation}</span>
+        `
+
+        if (tag_text == active_tag){
+            tag_div.classList.add('current_tag')
+            tag_div.addEventListener('click', function(e){
+                e.preventDefault()
+                addIllusts(1, pageData.illusts)
+                addPagination(1, pageData.illusts)
+                addTags()
+            })
+            
+        } else {
+            tag_div.addEventListener('click', function(e){
+                e.preventDefault()
+                getTagIllusts(tag_text)
+                addIllusts(1, tag_illustrations[tag_text])
+                addPagination(1, tag_illustrations[tag_text])
+                addTags(tag_text)
+                
+                var newurl =  new URL(window.location.protocol + "//" + window.location.host + window.location.pathname)
+                newurl.searchParams.append("p", "1")
+                newurl.searchParams.append("tag", tag_text)
+                    window.history.replaceState({
+                        path: newurl
+                    }, '', newurl);
+            })
+        }
+        
+        tag_box.appendChild(tag_div)
+    }
 }
 
 function processPage() {
@@ -54,9 +110,17 @@ function processPage() {
         .then(() => getIllusts())
         .then(() => getBookmarks())
         .then(() => {
-            addIllusts();
+            if (tagFromUrl){
+                getTagIllusts(tagFromUrl)
+                addIllusts(page, tag_illustrations[tagFromUrl]);
+            } else {
+                addIllusts(page, pageData.illusts);
+            }
+            addHeader();
             addBookmarks();
         })
+        .then(() => getTags())
+        .then(() => addTags())
         .then(() => afterLoad());
 }
 
@@ -311,11 +375,56 @@ function addInfo() {
     }
 }
 
+function getTagIllusts(tag) {
+    if (tag_illustrations[tag]) return
+
+    var paginated_illusts = {}
+    var page_index = 1;
+    paginated_illusts[page_index] = {};
+    var id_counter = 0;
+    for (let i = 1; i <= pageData.totalIllustPages; i++) {
+        console.log("illust_page: " + parseInt(i))
+        for (let id in pageData.illusts[i]){
+            console.log("id: " + parseInt(id))
+            let illust = pageData.illusts[i][id];
+            if (illust.tags.includes(tag)){
+                if(id_counter == 36){
+                    page_index++;
+                    paginated_illusts[page_index] = {};
+                    id_counter = 0;
+                }
+                paginated_illusts[page_index][illust.id] = illust;
+                console.log("( " + parseInt(page_index) + ", " + parseInt(id_counter) + ")");
+                id_counter++;
+            }
+        }
+    }
+    console.log(paginated_illusts)
+    tag_illustrations[tag] = paginated_illusts
+}
+
 function addList() {
+    let content = document.createElement('div');
+    content.id = 'content';
+    document.getElementById('minip').appendChild(content);
+
+    let page1 = document.createElement('div');
+    let page2 = document.createElement('div');
+    page1.classList.add("pagination")
+    page2.classList.add("pagination")
+
     let list = document.createElement('div');
-    list.id = 'list';
-    list.innerHTML = DOMPurify.sanitize(chrome.i18n.getMessage('msgLoading'));
-    document.getElementById('minip').appendChild(list);
+    list.id = 'list'
+    let header = document.createElement('div');
+    header.id = 'prof-header'
+    let tags = document.createElement('tags');
+    tags.id = 'prof-tags'
+    header.appendChild(tags)
+    list.prepend(header)
+    content.appendChild(header)
+    content.appendChild(page1)
+    content.appendChild(list)
+    content.appendChild(page2)
 }
 
 function getIllustIds() {
@@ -332,9 +441,7 @@ function getIllustIds() {
             pageData.illustIds = Object.assign(data.illusts, data.manga);
             pageData.totalIllusts = Object.keys(pageData.illustIds).length;
             pageData.totalIllustPages = Math.ceil(pageData.totalIllusts / pageData.illustsPerPage);
-            console.log(data.pickup)
             pageData.fanbox = data.pickup.filter(obj => obj.type === "fanbox")[0] || null;
-            console.log(pageData.fanbox)
         });
 }
 
@@ -343,7 +450,7 @@ function getIllusts() {
     //bg cache
     if (page in pageData.illusts) return;
     //fetch
-    let params = '?';
+
     let reverseIds = [];
     for (let id in pageData.illustIds) {
         reverseIds.push(parseInt(id));
@@ -351,22 +458,37 @@ function getIllusts() {
     reverseIds.sort(function (a, b) {
         return b - a
     });
-    let offset = (page - 1) * pageData.illustsPerPage;
-    let limit = offset + pageData.illustsPerPage;
-    for (let i = offset; i < limit; i++) {
-        let id = reverseIds[i];
-        if (id == undefined) break;
-        //params += 'ids[]='+id+'&';
-        params += 'ids%5B%5D=' + id + '&';
+
+    var return_promise;
+
+    let promises = []
+    for (let j = 1; j <= pageData.totalIllustPages; j++) {
+        let params = '?';
+        let offset = (j - 1) * pageData.illustsPerPage;
+        let limit = offset + pageData.illustsPerPage;
+        for (let i = offset; i < limit; i++) {
+            let id = reverseIds[i];
+            if (id == undefined) break;
+            //params += 'ids[]='+id+'&';
+            params += 'ids%5B%5D=' + id + '&';
+        }
+        //params += 'is_manga_top=0';
+        params += 'work_category=illustManga&is_first_page=1';
+        let x = content.fetch('/ajax/user/' + userId + '/profile/illusts' + params, {
+                credentials: 'same-origin'
+            })
+            .then(r => r.json())
+            .then(r => r.body)
+            .then(data => pageData.illusts[j] = data.works);
+        promises.push(x)
+        if (page == j) return_promise = x;
     }
-    //params += 'is_manga_top=0';
-    params += 'work_category=illustManga&is_first_page=1';
-    return content.fetch('/ajax/user/' + userId + '/profile/illusts' + params, {
-            credentials: 'same-origin'
-        })
-        .then(r => r.json())
-        .then(r => r.body)
-        .then(data => pageData.illusts[page] = data.works);
+
+    Promise.allSettled(promises).then(x => {
+        addPagination(page, pageData.illusts);
+    })
+
+    return return_promise;
 }
 
 function getBookmarks() {
@@ -388,73 +510,14 @@ function getBookmarks() {
         });
 }
 
-function addIllusts() {
-    if (type == 'bookmark') return;
-
-    let list = document.getElementById('list');
-    list.innerHTML = '';
-    //pagination
-    let offset = Math.max(1, page - 2);
-    offset = Math.min(Math.max(1, pageData.totalIllustPages - 4), offset);
-    let limit = offset + 5;
-    let pagination = `<div class="pagination">`;
-    let url = new URLSearchParams(document.location.search);
-    for (let i = offset; i < limit; i++) {
-        if (i > pageData.totalIllustPages) break;
-        let status = (i == page ? 'inactive' : '');
-        url.set('p', i);
-        let pageUrl = document.location.pathname + '?' + url.toString();
-        pagination += `<a href="${pageUrl}" class="${status}">${i}</a>`;
-    }
-    pagination += `</div>`;
-    //illusts
-    let html = `${pagination}<ul>`;
-    let ids = [];
-    for (let id in pageData.illusts[page]) {
-        ids.push(parseInt(id));
-    }
-    ids.sort(function (a, b) {
-        return b - a
-    });
-    for (let id of ids) {
-        let illust = pageData.illusts[page][id];
-        let illustUrl = illust.url;
-        if (app.opts.useCdn && app.opts.cdnUrl) illustUrl = illustUrl.replace('https://i.pximg.net', app.opts.cdnUrl);
-        let count = (illust.pageCount > 1 ? `<i class="count">${parseInt(illust.pageCount)}</i>` : '');
-        count = (illust.illustType == 2 ? `<i class="ugoira far fa-play-circle"></i>` : count);
-        let nsfw = (illust.xRestrict == 1 ? `<i class="r18">R-18</i>` : '');
-        let bookmarked = (illust.bookmarkData === null ? '' : `<i class="bookmarked fas fa-heart"></i>`);
-        html += `
-            <li id="${"ill-" + parseInt(illust.id)}">
-                <a title="${illust.alt}" class="illust" href="${lang}/artworks/${parseInt(illust.id)}">
-                    <span>
-                        ${count}
-                        ${nsfw}
-                        ${bookmarked}
-                    </span>
-                    <span class="illust-img" style="background-image:url('${illustUrl}');">
-                    </span>
-                </a>
-                <a title="${illust.alt}" href="${lang}/artworks/${parseInt(illust.id)}"><span>${illust.title}</span></a>
-            </li>
-        `;
-    }
-    html += `</ul>${pagination}`;
-    list.innerHTML = DOMPurify.sanitize(html);
-
-    let header = document.createElement('div');
-    header.id = 'prof-header'
-    let tags = document.createElement('tags');
-    tags.id = 'prof-tags'
-    header.appendChild(tags)
-    list.prepend(header)
-
-    if (pageData.fanbox){
+function addHeader() {
+    if (pageData.fanbox) {
+        let header = document.getElementById('prof-header');
         let box_data = pageData.fanbox;
         let box = document.createElement('div');
         box.id = 'fanbox';
         header.prepend(box);
-        
+
         let svgFanbox = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 55 146.1 20">
             <path fill="#2C333C" d="M21.2 64.2c-.3.8-.8 1.4-1.3 1.9s-1.1.9-1.8 1.1c-.7.2-1.4.4-2.1.4
             h-1.8v6.9H10v-19h5.9c.7 0 1.4.1 2.1.3.7.2 1.3.5 1.9 1 .6.5 1 1.1 1.4 1.8s.5 1.7.5 2.8
@@ -479,6 +542,94 @@ function addIllusts() {
             </a>
         `
     }
+}
+
+function addPagination(page_num, illusts) {
+    //pagination
+    console.log("addPagination 1")
+    let offset = Math.max(1, page_num - 2);
+    console.log("addPagination 2")
+    let max_num_pages = Object.keys(illusts).length
+    console.log("addPagination 3")
+    offset = Math.min(Math.max(1, max_num_pages - 4), offset);
+    let limit = offset + 5;
+    let pagination = document.getElementsByClassName("pagination")
+    console.log("addPagination 4")
+    for (let j = 0; j < pagination.length; j++) {
+        console.log("addPagination 5")
+        pagination[j].innerHTML = ""
+        for (let i = offset; i < limit; i++) {
+            console.log("addPagination 6")
+            if (i > max_num_pages) break;
+            let link = document.createElement("a")
+            console.log("addPagination 7")
+            if (i !== page_num) {
+                console.log("addPagination 8")
+                link.addEventListener("click", function () {
+                    console.log(i)
+                    var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?p=' + parseInt(i);
+                    window.history.replaceState({
+                        path: newurl
+                    }, '', newurl);
+                    addIllusts(i, illusts)
+                    addPagination(i, illusts)
+                })
+            } else {
+                console.log("addPagination 9")
+                link.classList.add("inactive")
+            }
+            console.log("addPagination 10")
+            link.innerHTML = parseInt(i)
+            console.log("addPagination 11")
+            pagination[j].appendChild(link)
+        }
+    }
+    console.log("addPagination 12")
+}
+
+function addIllusts(page_num, illusts) {
+    if (type == 'bookmark') return;
+    console.log(illusts);
+    console.log(illusts[page_num])
+
+    let list = document.getElementById('list');
+    list.innerHTML = '';
+
+    //illusts
+    let ul = document.createElement("ul");
+
+    let ids = [];
+    for (let id in illusts[page_num]) {
+        ids.push(parseInt(id));
+    }
+    ids.sort(function (a, b) {
+        return b - a
+    });
+    for (let id of ids) {
+        let illust = illusts[page_num][id];
+        let illustUrl = illust.url;
+        if (app.opts.useCdn && app.opts.cdnUrl) illustUrl = illustUrl.replace('https://i.pximg.net', app.opts.cdnUrl);
+        let count = (illust.pageCount > 1 ? `<i class="count">${parseInt(illust.pageCount)}</i>` : '');
+        count = (illust.illustType == 2 ? `<i class="ugoira far fa-play-circle"></i>` : count);
+        let nsfw = (illust.xRestrict == 1 ? `<i class="r18">R-18</i>` : '');
+        let bookmarked = (illust.bookmarkData === null ? '' : `<i class="bookmarked fas fa-heart"></i>`);
+        let li = document.createElement('li');
+        li.id = "ill-" + parseInt(illust.id)
+        li.innerHTML = `
+                <a title="${illust.alt}" class="illust" href="${lang}/artworks/${parseInt(illust.id)}">
+                    <span>
+                        ${count}
+                        ${nsfw}
+                        ${bookmarked}
+                    </span>
+                    <span class="illust-img" style="background-image:url('${illustUrl}');">
+                    </span>
+                </a>
+                <a title="${illust.alt}" href="${lang}/artworks/${parseInt(illust.id)}"><span>${illust.title}</span></a>
+        `;
+        ul.appendChild(li);
+    }
+    list.appendChild(ul)
 }
 
 function addBookmarks() {
