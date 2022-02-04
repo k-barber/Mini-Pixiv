@@ -453,7 +453,7 @@ a:visited img {
 }
 
 #userGallery {
-    margin: 0px 270px;
+    margin: auto;
     overflow: visible;
     max-width: 1380px;
     padding-top: 5px;

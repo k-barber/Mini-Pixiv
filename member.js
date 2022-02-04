@@ -3,14 +3,36 @@
 let app = {};
 let device = 'desktop';
 
-let userId = parseInt(document.location.href.split('/').pop());
+var all_illusts_promise;
+
+let regex_matches = document.location.href.match(/users\/(\d+)(?:\/artworks\/(.*?)(?:\?|$))?/);
+
+var current_tag;
+
+let userId = parseInt(regex_matches[1]);
 if (document.location.href.indexOf('/bookmarks/') != -1) {
     let url = document.location.href.replace('/bookmarks/artworks', '');
     userId = parseInt(url.split('/').pop());
 }
 let pageFromUrl = new URLSearchParams(document.location.search).get('p');
 let page = (pageFromUrl == undefined ? 1 : parseInt(pageFromUrl));
-let tagFromUrl = new URLSearchParams(document.location.search).get('tag');
+var tagFromUrl
+if (regex_matches[2]) {
+    tagFromUrl = decodeURIComponent(regex_matches[2]);
+    current_tag = tagFromUrl
+    var newurl = new URL(window.location.protocol + "//" + window.location.host + "/en/users/" + userId)
+    newurl.searchParams.append("tag", tagFromUrl)
+    newurl.searchParams.append("p", page)
+    console.log(newurl.href)
+    window.history.replaceState({
+        path: newurl.href
+    }, '', newurl.href);
+    
+} else {
+    tagFromUrl = new URLSearchParams(document.location.search).get('tag');
+    current_tag = tagFromUrl
+}
+
 let type = 'illust';
 if (document.location.href.indexOf('bookmarks') != -1) type = 'bookmark';
 let pageData = {
@@ -60,39 +82,41 @@ function addTags(active_tag = null) {
     for (let i = 0; i < Math.min(25, pageData?.tags?.length); i++) {
         let tag_div = document.createElement('div')
         let tag_text = pageData.tags[i].tag;
-        
+
         tag_div.classList.add('prof-tag')
-        tag_div.innerHTML =`
+        tag_div.innerHTML = `
                 <span class='tag-original'>${pageData.tags[i].tag}</span>
                 <span class='tag-trans'>${pageData.tags[i].tag_translation}</span>
         `
 
-        if (tag_text == active_tag){
+        if (tag_text == active_tag) {
             tag_div.classList.add('current_tag')
-            tag_div.addEventListener('click', function(e){
+            tag_div.addEventListener('click', function (e) {
                 e.preventDefault()
                 addIllusts(1, pageData.illusts)
                 addPagination(1, pageData.illusts)
+                current_tag = null;
                 addTags()
             })
-            
+
         } else {
-            tag_div.addEventListener('click', function(e){
+            tag_div.addEventListener('click', function (e) {
                 e.preventDefault()
+                current_tag = tag_text;
                 getTagIllusts(tag_text)
                 addIllusts(1, tag_illustrations[tag_text])
                 addPagination(1, tag_illustrations[tag_text])
                 addTags(tag_text)
-                
-                var newurl =  new URL(window.location.protocol + "//" + window.location.host + window.location.pathname)
-                newurl.searchParams.append("p", "1")
+
+                var newurl = new URL(window.location.protocol + "//" + window.location.host + "/en/users/" + userId)
                 newurl.searchParams.append("tag", tag_text)
-                    window.history.replaceState({
-                        path: newurl
-                    }, '', newurl);
+                newurl.searchParams.append("p", "1")
+                window.history.replaceState({
+                    path: newurl.href
+                }, '', newurl.href);
             })
         }
-        
+
         tag_box.appendChild(tag_div)
     }
 }
@@ -110,11 +134,17 @@ function processPage() {
         .then(() => getIllusts())
         .then(() => getBookmarks())
         .then(() => {
-            if (tagFromUrl){
-                getTagIllusts(tagFromUrl)
-                addIllusts(page, tag_illustrations[tagFromUrl]);
+            if (tagFromUrl) {
+                all_illusts_promise.then(() => {
+                    getTagIllusts(tagFromUrl)
+                    addIllusts(page, tag_illustrations[tagFromUrl]);
+                    addPagination(page, tag_illustrations[tagFromUrl]);
+                })
             } else {
                 addIllusts(page, pageData.illusts);
+                all_illusts_promise.then(() => {
+                    addPagination(page, pageData.illusts);
+                });
             }
             addHeader();
             addBookmarks();
@@ -135,35 +165,61 @@ function getAppData(resolve) {
 
 function getMemberData() {
     //get parsedHead
+    console.log("1")
     return new Promise(resolve => {
+        console.log("2")
+        console.log(userId)
         chrome.runtime.sendMessage({
             from: "member",
             userId: userId
         }, function (data) {
+            console.log("3")
             let parsedHead = data;
-            if (parsedHead.token) pageData.token = parsedHead.token;
-            //bgcache
-            if (!parsedHead.timestamp) {
-                pageData = parsedHead;
-                resolve();
-                return;
+            console.log("4")
+            console.log(data);
+            /*
+            if (parsedHead) {
+                if (parsedHead?.token) {
+                    pageData.token = parsedHead.token
+                }
+                console.log("5")
+                //bgcache
+                if (!parsedHead.timestamp) {
+                    console.log("6")
+                    pageData = parsedHead;
+                    console.log(pageData)
+                    console.log("7")
+                    resolve();
+                    console.log("8")
+                    return;
+                }
+                //bgrequest
+                console.log("9")
+                if (parsedHead.user) {
+                    console.log("10")
+                    for (let k in parsedHead.user) pageData.user = parsedHead.user[k];
+                    console.log("11")
+                    resolve();
+                    console.log("12")
+                    return;
+                }
             }
-            //bgrequest
-            if (parsedHead.user) {
-                for (let k in parsedHead.user) pageData.user = parsedHead.user[k];
-                resolve();
-                return;
-            }
+            */
             //fetch
             //means pixiv changed their data structure or running on mobile
-            device = 'mobile';
+            console.log("13")
+            //device = 'mobile';
+            console.log("14")
             return content.fetch('/ajax/user/' + userId, {
                     credentials: 'same-origin'
                 })
                 .then(r => r.json())
                 .then(data => {
+                    console.log("15")
                     pageData.user = data.body;
+                    console.log("16")
                     resolve();
+                    console.log("17")
                 });
         });
     });
@@ -381,14 +437,17 @@ function getTagIllusts(tag) {
     var paginated_illusts = {}
     var page_index = 1;
     paginated_illusts[page_index] = {};
+    console.log("All illustrations:")
+    console.log(tag)
+    console.log(pageData.illusts)
     var id_counter = 0;
     for (let i = 1; i <= pageData.totalIllustPages; i++) {
         console.log("illust_page: " + parseInt(i))
-        for (let id in pageData.illusts[i]){
-            console.log("id: " + parseInt(id))
+        for (let id in pageData.illusts[i]) {
+            //console.log("id: " + parseInt(id))
             let illust = pageData.illusts[i][id];
-            if (illust.tags.includes(tag)){
-                if(id_counter == 36){
+            if (illust.tags.includes(tag)) {
+                if (id_counter == 36) {
                     page_index++;
                     paginated_illusts[page_index] = {};
                     id_counter = 0;
@@ -438,7 +497,9 @@ function getIllustIds() {
         .then(r => r.json())
         .then(r => r.body)
         .then(data => {
+            console.log(data);
             pageData.illustIds = Object.assign(data.illusts, data.manga);
+            console.log(pageData.illustIds);
             pageData.totalIllusts = Object.keys(pageData.illustIds).length;
             pageData.totalIllustPages = Math.ceil(pageData.totalIllusts / pageData.illustsPerPage);
             pageData.fanbox = data.pickup.filter(obj => obj.type === "fanbox")[0] || null;
@@ -450,6 +511,9 @@ function getIllusts() {
     //bg cache
     if (page in pageData.illusts) return;
     //fetch
+
+
+    console.log(pageData.illustIds)
 
     let reverseIds = [];
     for (let id in pageData.illustIds) {
@@ -484,9 +548,7 @@ function getIllusts() {
         if (page == j) return_promise = x;
     }
 
-    Promise.allSettled(promises).then(x => {
-        addPagination(page, pageData.illusts);
-    })
+    all_illusts_promise = Promise.allSettled(promises);
 
     return return_promise;
 }
@@ -546,48 +608,39 @@ function addHeader() {
 
 function addPagination(page_num, illusts) {
     //pagination
-    console.log("addPagination 1")
     let offset = Math.max(1, page_num - 2);
-    console.log("addPagination 2")
     let max_num_pages = Object.keys(illusts).length
-    console.log("addPagination 3")
     offset = Math.min(Math.max(1, max_num_pages - 4), offset);
     let limit = offset + 5;
     let pagination = document.getElementsByClassName("pagination")
-    console.log("addPagination 4")
     for (let j = 0; j < pagination.length; j++) {
-        console.log("addPagination 5")
         pagination[j].innerHTML = ""
         for (let i = offset; i < limit; i++) {
-            console.log("addPagination 6")
             if (i > max_num_pages) break;
             let link = document.createElement("a")
-            console.log("addPagination 7")
             if (i !== page_num) {
-                console.log("addPagination 8")
                 link.addEventListener("click", function () {
                     console.log(i)
-                    var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?p=' + parseInt(i);
+                    var newurl = new URL(window.location.protocol + "//" + window.location.host + "/en/users/" + userId)
+                    if (current_tag) newurl.searchParams.append("tag", current_tag) ;
+                    newurl.searchParams.append("p", i) 
                     window.history.replaceState({
-                        path: newurl
-                    }, '', newurl);
+                        path: newurl.href
+                    }, '', newurl.href);
                     addIllusts(i, illusts)
                     addPagination(i, illusts)
                 })
             } else {
-                console.log("addPagination 9")
                 link.classList.add("inactive")
             }
-            console.log("addPagination 10")
             link.innerHTML = parseInt(i)
-            console.log("addPagination 11")
             pagination[j].appendChild(link)
         }
     }
-    console.log("addPagination 12")
 }
 
 function addIllusts(page_num, illusts) {
+    console.log("Add Illusts");
     if (type == 'bookmark') return;
     console.log(illusts);
     console.log(illusts[page_num])
