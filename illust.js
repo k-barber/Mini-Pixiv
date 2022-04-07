@@ -910,7 +910,7 @@ function makeRecommendHtml(illusts) {
                         ${nsfw}
                         ${bookmarked}
                     </span>
-                    <span class="illust-img" style="background-image:url('${illustUrl}');">
+                    <span class="lazy-img illust-img" data-src="${illustUrl}">
                     </span>
                 </a>
                 <a class="by" href="${lang}/users/${parseInt(illust.userId)}">
