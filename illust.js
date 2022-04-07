@@ -1,5 +1,3 @@
-'use strict';
-
 const loaded_chunks = new Event('loaded_chunks');
 const loaded_recs = new Event('loaded_recs');
 
@@ -7,7 +5,7 @@ let app = {};
 let device = 'desktop';
 
 let anim = null;
-let pageData = {
+var pageData = {
     token: null,
     user: {},
     illust: {},
@@ -19,7 +17,6 @@ let pageData = {
 };
 let lang = '';
 if (document.location.href.indexOf("/en/") != -1) lang = '/en';
-
 
 function decode(html) {
     var txt = document.createElement("textarea");
@@ -352,11 +349,81 @@ function addGallery() {
     document.getElementById('minip').appendChild(gallery);
 }
 
-function download(e) {
+async function download(e) {
     e.preventDefault()
     console.log(pageData)
     console.log("download");
-    if (pageData.illust.pageCount === 1) {
+    if (pageData.illust.illustType === 2) {
+        console.log("UGOIRA DOWNLOAD");
+        let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ").apng";
+        console.log(pageData.ugoiraData);
+
+        let canvas = document.createElement("canvas")
+        canvas.width = pageData.ugoiraData.width;
+        canvas.height = pageData.ugoiraData.height;
+        var encoder = new APNGencoder(canvas);
+        encoder.setRepeat(0);
+
+        encoder.start();
+
+        for (let i = 0; i < pageData.ugoira.length; i++) {
+            await new Promise(resolve => {
+                encoder.setDelay(Math.max(1, Math.floor(pageData.ugoira[i].delay / 10)));
+                let image = document.createElement("img");
+                let ctx = canvas.getContext("2d");
+                image.onload = () => {
+                    ctx.drawImage(image, 0, 0);
+                    encoder.addFrame()
+                    resolve();
+                }
+                image.src = pageData.ugoira[i].src;
+            })
+        }
+
+        encoder.finish();
+
+        var base64Out = bytesToBase64(encoder.stream().bin);
+
+        var img = document.createElement("img");
+        img.style.width = canvas.width;
+        img.style.height = canvas.height;
+        img.src = "data:image/png;base64," + base64Out;
+        document.body.appendChild(img);
+
+        saveAs("data:image/vnd.mozilla.apng;base64," + base64Out, filename);
+
+        /*
+        var gif = new GIF({
+            workers: 2,
+            quality: 1,
+            width: pageData.ugoiraData.width,
+            height: pageData.ugoiraData.height,
+            workerScript: browser.runtime.getURL(
+                "gif.worker.js"
+              )
+        })
+        console.log(gif);
+        
+        for (let i = 0; i < pageData.ugoira.length; i++){
+            await new Promise(resolve => {
+                let image = document.createElement("img");
+                image.onload = () =>{
+                    gif.addFrame(image, {delay: pageData.ugoira[i].delay})
+                    resolve();
+                }
+                image.src = pageData.ugoira[i].src;
+            })
+        }
+        gif.on('finished', function(blob){
+            console.log("FINISHED");
+            window.open(URL.createObjectURL(blob));
+
+            saveAs(blob, filename);
+        })
+
+        gif.render();
+        */
+    } else if (pageData.illust.pageCount === 1) {
         let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ")_0";
         let url = pageData.illust.images[0].original;
         console.log(url);
@@ -714,6 +781,7 @@ function extractUgoiraZip(resolve, data) {
                 entries[i].getData(new zip.BlobWriter(), function (blob) {
                     pageData.ugoira.push({
                         src: URL.createObjectURL(blob),
+                        blob: blob,
                         delay: pageData.ugoiraData.frames[i].delay
                     });
                     if (i == (entries.length - 1)) resolve();
@@ -744,6 +812,13 @@ function animate() {
     if (frame >= pageData.ugoiraData.frames.length) frame = 0;
     ugoira.dataset.frame = frame;
     ugoira.children[0].src = DOMPurify.sanitize(pageData.ugoira[frame].src);
+    if (!pageData?.ugoiraData?.width) {
+        ugoira.children[0].onload = function () {
+            pageData.ugoiraData.width = ugoira.children[0].width;
+            pageData.ugoiraData.height = ugoira.children[0].height;
+            ugoira.children[0].onload = null;
+        }
+    }
     //anim = requestAnimationFrame(animate);
     anim = setTimeout(animate, pageData.ugoira[frame].delay);
 }
@@ -894,7 +969,6 @@ window.addEventListener('loaded_recs', (event) => {
         });
     }
 });
-
 
 (function () {
     return processPage();

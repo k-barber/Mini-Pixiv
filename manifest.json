@@ -27,6 +27,15 @@
         "page": "options.html"
     },
     "background": {
-        "scripts": ["background.js"]
-    }
+        "scripts": [
+            "background.js"
+        ]
+    },
+    "content_scripts": [{
+        "matches": ["https://www.pixiv.net/*"],
+        "js": ["gif.worker.js", "gif.js", "canvas2apng.js", "illust.js"]
+    }],
+    "web_accessible_resources": [
+        "gif.worker.js"
+     ]
 }

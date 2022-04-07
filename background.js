@@ -196,10 +196,11 @@ function addContentScripts(details) {
             file: '/jszip-utils.min.js',
             runAt: 'document_end'
         });
-        browser.tabs.executeScript(details.tabId, {
+        /*browser.tabs.executeScript(details.tabId, {
             file: '/illust.js',
             runAt: 'document_end'
         });
+        */
 
     }
     //member
