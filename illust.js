@@ -1,5 +1,8 @@
 'use strict';
 
+const loaded_chunks = new Event('loaded_chunks');
+const loaded_recs = new Event('loaded_recs');
+
 let app = {};
 let device = 'desktop';
 
@@ -212,7 +215,8 @@ function addUserIllusts() {
         console.log(illustId)
         var curr = document.getElementById(illustId)
         curr.classList.add("current_img")
-        list.scrollLeft = curr.offsetLeft - (list.clientWidth / 2) + 102
+        list.scrollLeft = curr.offsetLeft - (list.clientWidth / 2) + 102;
+        window.dispatchEvent(loaded_chunks)
     })
 
     document.getElementById('minip').appendChild(gall);
@@ -348,6 +352,67 @@ function addGallery() {
     document.getElementById('minip').appendChild(gallery);
 }
 
+function download(e) {
+    e.preventDefault()
+    console.log(pageData)
+    console.log("download");
+    if (pageData.illust.pageCount === 1) {
+        let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ")_0";
+        let url = pageData.illust.images[0].original;
+        console.log(url);
+        content.fetch(url, {
+            referrer: "https://www.pixiv.net/",
+            headers: {
+                "Host": "pixiv.net"
+            }
+        }).then(function (resp) {
+            console.log(resp)
+            resp.blob().then(function (blob) {
+                console.log(blob)
+                saveAs(blob, filename);
+            });
+        });
+    } else {
+        var zip = new JSZip();
+        let promises = [];
+        for (let index = 0; index < pageData.illust.pageCount; index++) {
+            var element = pageData.illust.images[index];
+            let url = element.original;
+            let extension = url.substring(url.lastIndexOf("."))
+            let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ")_" + index + extension;
+            promises.push(content.fetch(url, {
+                    referrer: "https://www.pixiv.net/"
+                }).then(response => response.blob())
+                .then(blob => {
+                    return new Promise(function (resolve) {
+                        console.log(blob);
+                        var reader = new FileReader();
+                        reader.readAsDataURL(blob);
+                        reader.onloadend = function () {
+                            var base64data = reader.result;
+                            var trimmed = base64data.substr(base64data.indexOf(',') + 1)
+                            console.log(base64data);
+                            console.log(trimmed);
+                            zip.file(filename, trimmed, {
+                                base64: true
+                            });
+                            console.log(zip)
+                            resolve();
+                        }
+                    })
+                }));
+        }
+        Promise.allSettled(promises).then(function () {
+            console.log(JSON.stringify(zip))
+            zip.generateAsync({
+                type: 'blob'
+            }).then(function (content) {
+                saveAs(content, pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ").zip");
+            });
+        })
+    }
+}
+
 function addIllusts() {
     if (pageData.illust.illustType == 2) return;
     let gallery = document.getElementById('gallery');
@@ -367,7 +432,8 @@ function addIllusts() {
     let html = '';
     let i = 0;
     for (let item of images) {
-        let src = (app.opts.loadMaster ? item.master : item.original);
+        let src = item.master
+        //let src = (app.opts.loadMaster ? item.master : item.original);
         html += `
             <div>
                 <p>${++i} / ${images.length}</p>
@@ -380,6 +446,7 @@ function addIllusts() {
     for (let image of items) {
         image.addEventListener('error', onImgError);
     }
+    pageData.illust.images = images;
 }
 
 function onImgError(event) {
@@ -478,6 +545,7 @@ function addInfo() {
     } else {
         html += `<button id="bookmark" rel="minip" class="inactive"><i class="fas fa-heart"></i></button>`;
     }
+    html += `<button id="download" rel="minip"><i class="fas fa-download"></i></button>`;
     html += `</div>`;
     //desc
     if (pageData.illust.description.length != 0) {
@@ -517,9 +585,8 @@ function addInfo() {
     if (pageData.illust.bookmarkData == null) {
         document.getElementById('bookmark').addEventListener('click', bookmark);
     }
-    if (pageData.illust.bookmarkData == null) {
-        document.addEventListener('keypress', keypress);
-    }
+    document.addEventListener('keypress', keypress);
+    document.getElementById("download").addEventListener('click', download);
 }
 
 function like(e) {
@@ -554,8 +621,11 @@ function like(e) {
 }
 
 function keypress(e) {
-    if (e.code === "KeyB") {
+    if (pageData.illust.bookmarkData == null && e.code === "KeyB") {
         bookmark(e);
+    }
+    if (e.code === "KeyD") {
+        download(e);
     }
 }
 
@@ -729,6 +799,7 @@ function getMoreRecommend(e) {
             if (data.error) throw 'Error loading recommendations.';
             let html = makeRecommendHtml(data.body.illusts);
             document.getElementById('recommend').getElementsByTagName('ul')[0].innerHTML += DOMPurify.sanitize(html);
+            window.dispatchEvent(loaded_recs)
         });
 }
 
@@ -743,6 +814,7 @@ function addRecommend() {
     document.getElementById('illustInfo').appendChild(recommend);
     let button = document.getElementById('getMoreRecommend');
     button.addEventListener('click', getMoreRecommend);
+    window.dispatchEvent(loaded_recs)
 }
 
 function makeRecommendHtml(illusts) {
@@ -774,6 +846,54 @@ function makeRecommendHtml(illusts) {
     }
     return html;
 }
+
+window.addEventListener('loaded_chunks', (event) => {
+    var lazyloadImages;
+
+    if ("IntersectionObserver" in window) {
+        lazyloadImages = document.querySelectorAll("#userGallery .lazy-img");
+        console.log(lazyloadImages)
+        var imageObserver = new IntersectionObserver(function (entries, observer) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    var image = entry.target;
+                    image.style.backgroundImage = `url('${image.dataset.src}')`
+                    image.classList.remove("lazy-img");
+                    imageObserver.unobserve(image);
+                }
+            });
+        });
+
+        lazyloadImages.forEach(function (image) {
+            console.log(image);
+            imageObserver.observe(image);
+        });
+    }
+});
+
+window.addEventListener('loaded_recs', (event) => {
+    var lazyloadImages;
+
+    if ("IntersectionObserver" in window) {
+        lazyloadImages = document.querySelectorAll("#recommend .lazy-img");
+        console.log(lazyloadImages)
+        var imageObserver = new IntersectionObserver(function (entries, observer) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    var image = entry.target;
+                    image.style.backgroundImage = `url('${image.dataset.src}')`
+                    image.classList.remove("lazy-img");
+                    imageObserver.unobserve(image);
+                }
+            });
+        });
+
+        lazyloadImages.forEach(function (image) {
+            console.log(image);
+            imageObserver.observe(image);
+        });
+    }
+});
 
 
 (function () {

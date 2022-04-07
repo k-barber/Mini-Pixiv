@@ -2,16 +2,16 @@
     "manifest_version": 2,
     "default_locale": "en",
     "name": "__MSG_appName__",
-    "version": "2.2",
+    "version": "3.0",
     "description": "__MSG_appDesc__",
     "icons": {
         "48": "icons/minip-48.png",
         "96": "icons/minip-96.png",
         "128": "icons/minip-128.png"
     },
-    "applications": {
+    "browser_specific_settings": {
         "gecko": {
-            "id": "minipixiv.ext@gmail.com",
+            "id": "{fca2c815-5f47-4aa0-9be2-c39ddc64d31c}",
             "strict_min_version": "57.0a1"
         }
     },

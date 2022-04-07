@@ -207,7 +207,7 @@ header a:visited {
 
 #mini-title {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: 1fr auto auto auto;
     grid-column-gap: 10px;
     align-items: start;
 }
@@ -452,6 +452,91 @@ a:visited img {
     border: 2px blue solid;
 }
 
+#tag-list {
+    width: min-content;
+    margin: 20px;
+    padding: 0px;
+    overflow-y: scroll;
+    height: 300px;
+    padding: 20px;
+}
+
+#tag-search {
+    margin: 20px 20px auto;
+    width: calc(100% - 40px);
+    box-sizing: border-box;
+}
+
+
+#tag-list .prof-tag {
+    margin: 10px 0px;
+}
+
+/* The Modal (background) */
+#tag-modal {
+    display: none;
+    /* Hidden by default */
+    position: fixed;
+    /* Stay in place */
+    z-index: 10 !important;
+    /* Sit on top */
+    padding-top: 100px;
+    /* Location of the box */
+    left: 0;
+    top: 0;
+    width: 100%;
+    /* Full width */
+    height: 100%;
+    /* Full height */
+    overflow: auto;
+    /* Enable scroll if needed */
+    background-color: rgb(0, 0, 0);
+    /* Fallback color */
+    background-color: rgba(0, 0, 0, 0.4);
+    /* Black w/ opacity */
+}
+
+/* Modal Content */
+#modal-content {
+    position: relative;
+    background-color: #fefefe;
+    margin: auto;
+    padding: 0;
+    border: 1px solid #888;
+    width: min-content !important;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    -webkit-animation-name: animatetop;
+    -webkit-animation-duration: 0.4s;
+    animation-name: animatetop;
+    animation-duration: 0.4s;
+    overflow-y: hidden;
+}
+
+/* Add Animation */
+@-webkit-keyframes animatetop {
+    from {
+        top: -300px;
+        opacity: 0
+    }
+
+    to {
+        top: 0;
+        opacity: 1
+    }
+}
+
+@keyframes animatetop {
+    from {
+        top: -300px;
+        opacity: 0
+    }
+
+    to {
+        top: 0;
+        opacity: 1
+    }
+}
+
 #userGallery {
     margin: auto;
     overflow: visible;
@@ -650,6 +735,21 @@ a:visited img {
     display: flex;
     justify-content: space-around;
     margin-bottom: 20px;
+}
+
+#tag-filter {
+    width: 100px;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    flex-direction: column;
+    border: 2px solid;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+#tag-filter i {
+    font-size: 40px;
 }
 
 .prof-tag.current_tag {

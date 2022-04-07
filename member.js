@@ -23,11 +23,10 @@ if (regex_matches[2]) {
     var newurl = new URL(window.location.protocol + "//" + window.location.host + "/en/users/" + userId)
     newurl.searchParams.append("tag", tagFromUrl)
     newurl.searchParams.append("p", page)
-    console.log(newurl.href)
     window.history.replaceState({
         path: newurl.href
     }, '', newurl.href);
-    
+
 } else {
     tagFromUrl = new URLSearchParams(document.location.search).get('tag');
     current_tag = tagFromUrl
@@ -76,13 +75,53 @@ function getTags() {
         });
 }
 
+function other_tag_click(e) {
+    e.preventDefault()
+
+    let tags = document.getElementsByClassName("prof-tag");
+    for (let tag of tags) {
+        if (tag.classList.contains("current_tag")) {
+            tag.classList.remove("current_tag");
+            tag.onclick = other_tag_click;
+        }
+    }
+
+    let tag_div = e.currentTarget;
+    let tag_text = tag_div.children[0].textContent || tag_div.children[0].innerHTML;
+    current_tag = tag_text;
+    getTagIllusts(tag_text)
+    addIllusts(1, tag_illustrations[tag_text])
+    addPagination(1, tag_illustrations[tag_text])
+    tag_div.classList.add('current_tag')
+    tag_div.onclick = current_tag_click
+
+    var newurl = new URL(window.location.protocol + "//" + window.location.host + "/en/users/" + userId)
+    newurl.searchParams.append("tag", tag_text)
+    newurl.searchParams.append("p", "1")
+    window.history.replaceState({
+        path: newurl.href
+    }, '', newurl.href);
+};
+
+
+function current_tag_click(e) {
+    e.preventDefault()
+    let tag_div = e.currentTarget;
+    addIllusts(1, pageData.illusts)
+    addPagination(1, pageData.illusts)
+    current_tag = null;
+    tag_div.classList.remove('current_tag')
+    tag_div.onclick = other_tag_click
+};
+
 function addTags(active_tag = null) {
-    let tag_box = document.getElementById('prof-tags')
+    let tag_box = document.getElementById('prof-tags');
+    let tag_list = document.getElementById('tag-list');
+    tag_list.innerHTML = "";
     tag_box.innerHTML = "";
-    for (let i = 0; i < Math.min(25, pageData?.tags?.length); i++) {
+    for (let i = 0; i < pageData?.tags?.length; i++) {
         let tag_div = document.createElement('div')
         let tag_text = pageData.tags[i].tag;
-
         tag_div.classList.add('prof-tag')
         tag_div.innerHTML = `
                 <span class='tag-original'>${pageData.tags[i].tag}</span>
@@ -91,33 +130,23 @@ function addTags(active_tag = null) {
 
         if (tag_text == active_tag) {
             tag_div.classList.add('current_tag')
-            tag_div.addEventListener('click', function (e) {
-                e.preventDefault()
-                addIllusts(1, pageData.illusts)
-                addPagination(1, pageData.illusts)
-                current_tag = null;
-                addTags()
-            })
-
+            tag_div.onclick = current_tag_click
         } else {
-            tag_div.addEventListener('click', function (e) {
-                e.preventDefault()
-                current_tag = tag_text;
-                getTagIllusts(tag_text)
-                addIllusts(1, tag_illustrations[tag_text])
-                addPagination(1, tag_illustrations[tag_text])
-                addTags(tag_text)
-
-                var newurl = new URL(window.location.protocol + "//" + window.location.host + "/en/users/" + userId)
-                newurl.searchParams.append("tag", tag_text)
-                newurl.searchParams.append("p", "1")
-                window.history.replaceState({
-                    path: newurl.href
-                }, '', newurl.href);
-            })
+            tag_div.onclick = other_tag_click
         }
 
-        tag_box.appendChild(tag_div)
+        
+        tag_list.appendChild(tag_div)
+        if (i < 25) {
+            let clone = tag_div.cloneNode(true)
+            if (tag_text == active_tag) {
+                clone.classList.add('current_tag')
+                clone.onclick = current_tag_click
+            } else {
+                clone.onclick = other_tag_click
+            }
+            tag_box.appendChild(clone)
+        }
     }
 }
 
@@ -165,61 +194,43 @@ function getAppData(resolve) {
 
 function getMemberData() {
     //get parsedHead
-    console.log("1")
     return new Promise(resolve => {
-        console.log("2")
-        console.log(userId)
         chrome.runtime.sendMessage({
             from: "member",
             userId: userId
         }, function (data) {
-            console.log("3")
             let parsedHead = data;
-            console.log("4")
-            console.log(data);
-            /*
+            console.log("test")
             if (parsedHead) {
+                console.log(parsedHead)
                 if (parsedHead?.token) {
                     pageData.token = parsedHead.token
                 }
-                console.log("5")
+                
                 //bgcache
                 if (!parsedHead.timestamp) {
-                    console.log("6")
                     pageData = parsedHead;
-                    console.log(pageData)
-                    console.log("7")
                     resolve();
-                    console.log("8")
                     return;
                 }
                 //bgrequest
-                console.log("9")
                 if (parsedHead.user) {
-                    console.log("10")
                     for (let k in parsedHead.user) pageData.user = parsedHead.user[k];
-                    console.log("11")
                     resolve();
-                    console.log("12")
                     return;
                 }
             }
-            */
+
             //fetch
             //means pixiv changed their data structure or running on mobile
-            console.log("13")
             //device = 'mobile';
-            console.log("14")
             return content.fetch('/ajax/user/' + userId, {
                     credentials: 'same-origin'
                 })
                 .then(r => r.json())
                 .then(data => {
-                    console.log("15")
                     pageData.user = data.body;
-                    console.log("16")
                     resolve();
-                    console.log("17")
                 });
         });
     });
@@ -292,22 +303,32 @@ function addProfile() {
 }
 
 function followUser(e) {
+    console.log("click!");
     e.preventDefault();
+    console.log("1");
     let target = document.getElementById('follow');
+    console.log("2");
     target.removeEventListener('click', followUser);
+    console.log("3");
     if (pageData.token == null) return;
+    console.log("4");
     let token = DOMPurify.sanitize(pageData.token);
+    console.log("5");
     let userId = parseInt(pageData.user.userId);
+    console.log("6");
     //desktop
     let url = '/bookmark_add.php';
+    console.log("7");
     let headers = {
         'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
         'Accept': 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
         'x-csrf-token': token
     };
+    console.log("8");
     let body = `mode=add&type=user&user_id=${userId}&tag=&restrict=0&format=json`;
     //mobile
+    console.log("9");
     if (device == 'mobile') {
         url = '/touch/ajax_api/ajax_api.php';
         headers = {
@@ -317,6 +338,7 @@ function followUser(e) {
         };
         body = `mode=add_bookmark_user&restrict=0&tt=${token}&user_id=${userId}`;
     }
+    console.log("10");
     content.fetch(url, {
             method: "POST",
             mode: "cors",
@@ -437,14 +459,9 @@ function getTagIllusts(tag) {
     var paginated_illusts = {}
     var page_index = 1;
     paginated_illusts[page_index] = {};
-    console.log("All illustrations:")
-    console.log(tag)
-    console.log(pageData.illusts)
     var id_counter = 0;
     for (let i = 1; i <= pageData.totalIllustPages; i++) {
-        console.log("illust_page: " + parseInt(i))
         for (let id in pageData.illusts[i]) {
-            //console.log("id: " + parseInt(id))
             let illust = pageData.illusts[i][id];
             if (illust.tags.includes(tag)) {
                 if (id_counter == 36) {
@@ -453,12 +470,10 @@ function getTagIllusts(tag) {
                     id_counter = 0;
                 }
                 paginated_illusts[page_index][illust.id] = illust;
-                console.log("( " + parseInt(page_index) + ", " + parseInt(id_counter) + ")");
                 id_counter++;
             }
         }
     }
-    console.log(paginated_illusts)
     tag_illustrations[tag] = paginated_illusts
 }
 
@@ -476,14 +491,61 @@ function addList() {
     list.id = 'list'
     let header = document.createElement('div');
     header.id = 'prof-header'
-    let tags = document.createElement('tags');
+    let tags = document.createElement('div');
     tags.id = 'prof-tags'
+    let filter = document.createElement('div')
+    filter.id = 'tag-filter'
+    let icon = document.createElement("i");
+    icon.classList.add("fas", "fa-search");
+    filter.appendChild(icon);
+    filter.appendChild(document.createTextNode("Search tags"))
+    let modal = document.createElement('div')
+    modal.id = 'tag-modal'
+    let modal_content = document.createElement('div')
+    modal_content.id = 'modal-content'
+    let tag_list = document.createElement('ul')
+    tag_list.id = 'tag-list';
+    let search = document.createElement('input')
+    search.id = 'tag-search'
+    search.placeholder = "Search for tags...";
+    search.onkeyup = function () {
+        let query = search.value.toUpperCase()
+        let li = tag_list.getElementsByTagName('div');
+        for (let i = 0; i < li.length; i++) {
+            let spans = li[i].getElementsByTagName("span");
+            var txt;
+            if (spans.length == 2) {
+                txt = spans[1].textContent || spans[1].innerHTML;
+            } else {
+                txt = spans[0].textContent || spans[0].innerHTML;
+            }
+            if (txt.toUpperCase().indexOf(query) > -1) {
+                li[i].style.display = "";
+            } else {
+                li[i].style.display = "none";
+            }
+        }
+    }
+    modal_content.appendChild(search)
+    modal_content.appendChild(tag_list)
+    modal.appendChild(modal_content)
+    filter.appendChild(modal)
     header.appendChild(tags)
+    header.appendChild(filter)
     list.prepend(header)
     content.appendChild(header)
     content.appendChild(page1)
     content.appendChild(list)
     content.appendChild(page2)
+    filter.onclick = function () {
+        modal.style.display = "block"
+    }
+
+    window.onclick = function (event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
 }
 
 function getIllustIds() {
@@ -497,9 +559,7 @@ function getIllustIds() {
         .then(r => r.json())
         .then(r => r.body)
         .then(data => {
-            console.log(data);
             pageData.illustIds = Object.assign(data.illusts, data.manga);
-            console.log(pageData.illustIds);
             pageData.totalIllusts = Object.keys(pageData.illustIds).length;
             pageData.totalIllustPages = Math.ceil(pageData.totalIllusts / pageData.illustsPerPage);
             pageData.fanbox = data.pickup.filter(obj => obj.type === "fanbox")[0] || null;
@@ -511,9 +571,6 @@ function getIllusts() {
     //bg cache
     if (page in pageData.illusts) return;
     //fetch
-
-
-    console.log(pageData.illustIds)
 
     let reverseIds = [];
     for (let id in pageData.illustIds) {
@@ -620,10 +677,9 @@ function addPagination(page_num, illusts) {
             let link = document.createElement("a")
             if (i !== page_num) {
                 link.addEventListener("click", function () {
-                    console.log(i)
                     var newurl = new URL(window.location.protocol + "//" + window.location.host + "/en/users/" + userId)
-                    if (current_tag) newurl.searchParams.append("tag", current_tag) ;
-                    newurl.searchParams.append("p", i) 
+                    if (current_tag) newurl.searchParams.append("tag", current_tag);
+                    newurl.searchParams.append("p", i)
                     window.history.replaceState({
                         path: newurl.href
                     }, '', newurl.href);
@@ -640,10 +696,7 @@ function addPagination(page_num, illusts) {
 }
 
 function addIllusts(page_num, illusts) {
-    console.log("Add Illusts");
     if (type == 'bookmark') return;
-    console.log(illusts);
-    console.log(illusts[page_num])
 
     let list = document.getElementById('list');
     list.innerHTML = '';
