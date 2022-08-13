@@ -13,7 +13,7 @@ const notyf = new Notyf({
             icon: {
                 className: "fas fa-sync-alt spin",
                 tagName: "i",
-                color: "black",
+                color: "white",
             },
             duration: 0,
             dismissible: false,
@@ -507,13 +507,18 @@ async function download(e) {
                     })
             );
         }
-        Promise.allSettled(promises).then(function () {
+        Promise.all(promises).then(function () {
             zip
                 .generateAsync({
                     type: "blob",
                 })
                 .then(function (content) {
+                    notyf.dismiss(wait);
                     saveAs(content, pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ").zip");
+                    notyf.open({
+                        type: "success",
+                        message: "<b>Success!</b>",
+                    });
                 });
         }).catch(function (e) {
             notyf.dismiss(wait);
