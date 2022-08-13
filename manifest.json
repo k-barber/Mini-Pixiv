@@ -32,10 +32,13 @@
         ]
     },
     "content_scripts": [{
-        "matches": ["https://www.pixiv.net/*"],
+        "matches": ["https://www.pixiv.net/en/users/*"],
+        "js": ["purify.min.js", "member.js"]
+    }, {
+        "matches": ["https://www.pixiv.net/en/artworks/*"],
         "js": ["gif.worker.js", "gif.js", "canvas2apng.js", "illust.js"]
     }],
     "web_accessible_resources": [
         "gif.worker.js"
-     ]
+    ]
 }

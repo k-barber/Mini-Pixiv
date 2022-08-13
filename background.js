@@ -12,8 +12,10 @@ let layout = `<!doctype html>
         body { background: #cdd1d7; /* bg2 */ }
         #root { display: none; }
     </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
 </head>
 <body>
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
     <header>
         <a href="#" id="menuToggle">Menu</a>
         <nav>
@@ -175,15 +177,27 @@ function addContentScripts(details) {
     //supported pages
     let pageType = getPageType(details.url);
     //illust
+    browser.tabs.insertCSS(details.tabId, {
+        file: '/main.css',
+        runAt: 'document_end'
+    });
+
+    browser.tabs.insertCSS(details.tabId, {
+        file: '/notyf.min.css',
+        runAt: 'document_end'
+    });
+
+    browser.tabs.executeScript(details.tabId, {
+        file: '/purify.min.js',
+        runAt: 'document_start'
+    });
+
+    browser.tabs.executeScript(details.tabId, {
+        file: '/notyf.min.js',
+        runAt: 'document_start'
+    });
+
     if (pageType == 'illust') {
-        browser.tabs.insertCSS(details.tabId, {
-            file: '/main.css',
-            runAt: 'document_end'
-        });
-        browser.tabs.executeScript(details.tabId, {
-            file: '/purify.min.js',
-            runAt: 'document_start'
-        });
         browser.tabs.executeScript(details.tabId, {
             file: '/FileSaver.min.js',
             runAt: 'document_end'
@@ -194,27 +208,6 @@ function addContentScripts(details) {
         });
         browser.tabs.executeScript(details.tabId, {
             file: '/jszip-utils.min.js',
-            runAt: 'document_end'
-        });
-        /*browser.tabs.executeScript(details.tabId, {
-            file: '/illust.js',
-            runAt: 'document_end'
-        });
-        */
-
-    }
-    //member
-    if (pageType == 'member' || pageType == 'bookmarks') {
-        browser.tabs.insertCSS(details.tabId, {
-            file: '/main.css',
-            runAt: 'document_end'
-        });
-        browser.tabs.executeScript(details.tabId, {
-            file: '/purify.min.js',
-            runAt: 'document_start'
-        });
-        browser.tabs.executeScript(details.tabId, {
-            file: '/member.js',
             runAt: 'document_end'
         });
     }

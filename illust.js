@@ -1,8 +1,50 @@
-const loaded_chunks = new Event('loaded_chunks');
-const loaded_recs = new Event('loaded_recs');
+const loaded_chunks = new Event("loaded_chunks");
+const loaded_recs = new Event("loaded_recs");
+
+const notyf = new Notyf({
+    position: {
+        x: "left",
+        y: "top",
+    },
+    types: [
+        {
+            type: "waiting",
+            background: "cornflowerblue",
+            icon: {
+                className: "fas fa-sync-alt spin",
+                tagName: "i",
+                color: "black",
+            },
+            duration: 0,
+            dismissible: false,
+        },
+        {
+            type: "success",
+            background: "limegreen",
+            icon: {
+                className: "far fa-check-circle",
+                tagName: "i",
+                color: "white",
+            },
+            duration: 5000,
+            dismissible: true,
+        },
+        {
+            type: "failure",
+            background: "crimson",
+            icon: {
+                className: "far fa-times-circle",
+                tagName: "i",
+                color: "white",
+            },
+            duration: 0,
+            dismissible: true,
+        },
+    ],
+});
 
 let app = {};
-let device = 'desktop';
+let device = "desktop";
 
 let anim = null;
 var pageData = {
@@ -13,35 +55,33 @@ var pageData = {
     illustOlderUrl: null,
     ugoiraData: {},
     ugoira: [],
-    recommend: {}
+    recommend: {},
 };
-let lang = '';
-if (document.location.href.indexOf("/en/") != -1) lang = '/en';
+let lang = "";
+if (document.location.href.indexOf("/en/") != -1) lang = "/en";
 
 function decode(html) {
     var txt = document.createElement("textarea");
-    var inner = DOMPurify.sanitize(html).replace(/href="\/jump\.php\?(.*?)"/, function (match, p1) {
-        return `href="${decodeURIComponent(p1)}"`
-    })
+    var inner = DOMPurify.sanitize(html).replaceAll(
+        /href="\/jump\.php\?(.*?)"/g,
+        function (match, p1) {
+            return `href="${decodeURIComponent(p1)}"`;
+        }
+    );
     txt.innerHTML = inner;
     return txt.value;
 }
 
 function chunkArray(array, chunkSize) {
-    console.log("2.0")
     var R = [];
-    console.log("2.1")
     for (var i = 0; i < array.length; i += chunkSize) {
-        console.log("2.2")
         R.push(array.slice(i, i + chunkSize));
     }
-    console.log("2.3")
-    console.log(R)
     return R;
 }
 
 function processPage() {
-    return new Promise(resolve => getAppData(resolve))
+    return new Promise((resolve) => getAppData(resolve))
         .then(() => getIllustData())
         .then(() => getNewerOlder())
         .then(() => getUserData())
@@ -60,46 +100,54 @@ function processPage() {
 }
 
 function getAppData(resolve) {
-    browser.runtime.sendMessage({
-        from: "getAppData"
-    }, function (data) {
-        app = data;
-        resolve();
-    });
+    browser.runtime.sendMessage(
+        {
+            from: "getAppData",
+        },
+        function (data) {
+            app = data;
+            resolve();
+        }
+    );
 }
 
 function getIllustData() {
-    return new Promise(resolve => {
-        browser.runtime.sendMessage({
-            from: "illust"
-        }, function (data) {
-            let parsedHead = data;
-            if (parsedHead.token) pageData.token = parsedHead.token;
-            //bgrequest
-            if (parsedHead.illust && parsedHead.user) {
-                for (let k in parsedHead.illust) pageData.illust = parsedHead.illust[k];
-                for (let k in parsedHead.user) pageData.user = parsedHead.user[k];
-                resolve();
-                return;
-            }
-            //fetch
-            //means pixiv changed their data structure or running on mobile
-            device = 'mobile';
-            let id = parseInt(document.location.href.split('/').pop());
-            return content.fetch('/ajax/illust/' + id, {
-                    credentials: 'same-origin'
-                })
-                .then(r => r.json())
-                .then(data => {
-                    pageData.illust = data.body;
+    return new Promise((resolve) => {
+        browser.runtime.sendMessage(
+            {
+                from: "illust",
+            },
+            function (data) {
+                let parsedHead = data;
+                if (parsedHead.token) pageData.token = parsedHead.token;
+                //bgrequest
+                if (parsedHead.illust && parsedHead.user) {
+                    for (let k in parsedHead.illust)
+                        pageData.illust = parsedHead.illust[k];
+                    for (let k in parsedHead.user) pageData.user = parsedHead.user[k];
                     resolve();
-                });
-        });
+                    return;
+                }
+                //fetch
+                //means pixiv changed their data structure or running on mobile
+                device = "mobile";
+                let id = parseInt(document.location.href.split("/").pop());
+                return content
+                    .fetch("/ajax/illust/" + id, {
+                        credentials: "same-origin",
+                    })
+                    .then((r) => r.json())
+                    .then((data) => {
+                        pageData.illust = data.body;
+                        resolve();
+                    });
+            }
+        );
     });
 }
 
 function getNewerOlder() {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
         let keys = Object.keys(pageData.illust.userIllusts).sort(function (a, b) {
             return a - b;
         });
@@ -109,15 +157,17 @@ function getNewerOlder() {
         let id = 0;
         if (loc < keys.length - 1) {
             id = pageData.illust.userIllusts[keys[loc + 1]].id;
-            pageData.illustNewerUrl = "https://www.pixiv.net/en/artworks/" + parseInt(id);
-            document.addEventListener('keydown', function (e) {
+            pageData.illustNewerUrl =
+                "https://www.pixiv.net/en/artworks/" + parseInt(id);
+            document.addEventListener("keydown", function (e) {
                 if (e.keyCode == 37) window.location = pageData.illustNewerUrl; // 37l,39r
             });
         }
         if (loc > 0) {
             id = pageData.illust.userIllusts[keys[loc - 1]].id;
-            pageData.illustOlderUrl = "https://www.pixiv.net/en/artworks/" + parseInt(id);
-            document.addEventListener('keydown', function (e) {
+            pageData.illustOlderUrl =
+                "https://www.pixiv.net/en/artworks/" + parseInt(id);
+            document.addEventListener("keydown", function (e) {
                 if (e.keyCode == 39) window.location = pageData.illustOlderUrl; // 37l,39r
             });
         }
@@ -127,96 +177,96 @@ function getNewerOlder() {
 }
 
 function addUserIllusts() {
-    let gall = document.createElement('div');
-    gall.id = 'userGallery';
-    let list = document.createElement('div');
-    list.id = 'list';
+    let gall = document.createElement("div");
+    gall.id = "userGallery";
+    let list = document.createElement("div");
+    list.id = "list";
     gall.appendChild(list);
 
-    let nav = document.createElement('div');
+    let nav = document.createElement("div");
     gall.appendChild(nav);
 
-
-    let ul = document.createElement('ul');
+    let ul = document.createElement("ul");
     list.appendChild(ul);
 
-    let left = document.createElement('i');
-    left.id = "gallery-left-arrow"
-    left.classList.add('fas', 'fa-chevron-circle-left');
-    left.addEventListener("click", e => {
+    let left = document.createElement("i");
+    left.id = "gallery-left-arrow";
+    left.classList.add("fas", "fa-chevron-circle-left");
+    left.addEventListener("click", (e) => {
         e.preventDefault();
 
-        var list = document.getElementById("list")
+        var list = document.getElementById("list");
         list.scrollTo({
             left: list.scrollLeft - 750,
-            behavior: 'smooth'
+            behavior: "smooth",
         });
     });
     nav.appendChild(left);
 
-    let right = document.createElement('i');
-    right.id = "gallery-right-arrow"
-    right.classList.add('fas', 'fa-chevron-circle-right');
-    right.addEventListener("click", e => {
+    let right = document.createElement("i");
+    right.id = "gallery-right-arrow";
+    right.classList.add("fas", "fa-chevron-circle-right");
+    right.addEventListener("click", (e) => {
         e.preventDefault();
-        var list = document.getElementById("list")
+        var list = document.getElementById("list");
         list.scrollTo({
             left: list.scrollLeft + 750,
-            behavior: 'smooth'
+            behavior: "smooth",
         });
     });
     nav.appendChild(right);
-
 
     let keys = Object.keys(pageData.illust.userIllusts).sort(function (a, b) {
         return b - a;
     });
     var key_chunks = chunkArray(keys, 10);
     var illustration_chunks = Array(key_chunks.length);
-    var chunks_loaded = new Promise(async resolve => {
-        let promises = []
+    var chunks_loaded = new Promise(async (resolve) => {
+        let promises = [];
 
         for (let i = 0; i < key_chunks.length; i++) {
             let chunk = key_chunks[i];
-            let url = new URL("https://www.pixiv.net/ajax/user/" + pageData.user.userId + "/illusts");
-            chunk.forEach(key => {
-                url.searchParams.append('ids[]', key);
+            let url = new URL(
+                "https://www.pixiv.net/ajax/user/" + pageData.user.userId + "/illusts"
+            );
+            chunk.forEach((key) => {
+                url.searchParams.append("ids[]", key);
             });
 
-            promises.push(content.fetch(url, {
-                    credentials: 'same-origin'
-                })
-                .then(r => r.json())
-                .then(data => {
-                    console.log("loaded illustration chunk: " + parseInt(i))
-                    let illusts = Object.values(data.body);
-                    illusts.sort(function (a, b) {
-                        return b.id - a.id
+            promises.push(
+                content
+                    .fetch(url, {
+                        credentials: "same-origin",
                     })
-                    var html = makeRecommendHtml(illusts);
-                    illustration_chunks[i] = DOMPurify.sanitize(html);
-                }))
+                    .then((r) => r.json())
+                    .then((data) => {
+                        let illusts = Object.values(data.body);
+                        illusts.sort(function (a, b) {
+                            return b.id - a.id;
+                        });
+                        var html = makeRecommendHtml(illusts);
+                        illustration_chunks[i] = DOMPurify.sanitize(html);
+                    })
+            );
         }
-        Promise.allSettled(promises).then(x => {
+        Promise.allSettled(promises).then((x) => {
             resolve();
-        })
-    })
+        });
+    });
 
-    chunks_loaded.then(x => {
+    chunks_loaded.then((x) => {
         for (let i = 0; i < illustration_chunks.length; i++) {
-            console.log("inserting illustration chunk: " + parseInt(i))
             ul.innerHTML += illustration_chunks[i];
         }
 
         let illustId = "ill-" + parseInt(pageData.illust.illustId);
-        console.log(illustId)
-        var curr = document.getElementById(illustId)
-        curr.classList.add("current_img")
-        list.scrollLeft = curr.offsetLeft - (list.clientWidth / 2) + 102;
-        window.dispatchEvent(loaded_chunks)
-    })
+        var curr = document.getElementById(illustId);
+        curr.classList.add("current_img");
+        list.scrollLeft = curr.offsetLeft - list.clientWidth / 2 + 102;
+        window.dispatchEvent(loaded_chunks);
+    });
 
-    document.getElementById('minip').appendChild(gall);
+    document.getElementById("minip").appendChild(gall);
 }
 
 function getUserData() {
@@ -225,60 +275,77 @@ function getUserData() {
     //fetch
     //means pixiv changed their data structure or running on mobile
     let userId = parseInt(pageData.illust.userId);
-    return content.fetch('/ajax/user/' + userId, {
-            credentials: 'same-origin'
+    return content
+        .fetch("/ajax/user/" + userId, {
+            credentials: "same-origin",
         })
-        .then(data => {
+        .then((data) => {
             if (data.error) {
-                document.body.innerHTML = DOMPurify.sanitize('<div id="loginError">Error: You must <a href="https://accounts.pixiv.net/login">login to Pixiv</a> to load this content.</div>');
-                throw 'Error loading user data.';
+                document.body.innerHTML = DOMPurify.sanitize(
+                    '<div id="loginError">Error: You must <a href="https://accounts.pixiv.net/login">login to Pixiv</a> to load this content.</div>'
+                );
+                throw "Error loading user data.";
             }
             pageData.user = data.body;
         });
 }
 
 function addLayout() {
-    document.body.id = 'illustPage';
-    if ('userName' in pageData.illust) {
-        let title = document.createElement('title');
-        title.textContent = DOMPurify.sanitize('pixiv - ' + pageData.illust.userName + ' - ' + pageData.illust.illustTitle);
+    document.body.id = "illustPage";
+    if ("userName" in pageData.illust) {
+        let title = document.createElement("title");
+        title.textContent = DOMPurify.sanitize(
+            "pixiv - " +
+            pageData.illust.userName +
+            " - " +
+            pageData.illust.illustTitle
+        );
         document.head.appendChild(title);
     }
-    document.getElementById('menuToggle').addEventListener('click', e => {
+    document.getElementById("menuToggle").addEventListener("click", (e) => {
         e.preventDefault();
-        let className = document.getElementById('menu').className;
-        document.getElementById('menu').className = (className ? '' : 'show');
+        let className = document.getElementById("menu").className;
+        document.getElementById("menu").className = className ? "" : "show";
     });
-    document.getElementById('openOptions').addEventListener('click', e => {
+    document.getElementById("openOptions").addEventListener("click", (e) => {
         e.preventDefault();
         browser.runtime.sendMessage({
-            from: "openOptions"
+            from: "openOptions",
         });
     });
 }
 
 function addAvatar() {
-    let avatar = document.createElement('div');
-    avatar.id = 'avatar';
-    document.getElementById('minip').appendChild(avatar);
+    let avatar = document.createElement("div");
+    avatar.id = "avatar";
+    document.getElementById("minip").appendChild(avatar);
     //follow
-    let follow = '';
+    let follow = "";
     if (pageData.user.isFollowed == false) {
-        follow = `<button id="follow" rel="minip">${browser.i18n.getMessage('buttonFollow')}</button>`;
+        follow = `<button id="follow" rel="minip">${browser.i18n.getMessage(
+            "buttonFollow"
+        )}</button>`;
     } else {
-        follow = `<button id="follow" rel="minip" class="inactive">${browser.i18n.getMessage('buttonFollowing')}</button>`;
+        follow = `<button id="follow" rel="minip" class="inactive">${browser.i18n.getMessage(
+            "buttonFollowing"
+        )}</button>`;
     }
     //html
     let avatarImg = pageData.user.imageBig;
-    if (app.opts.useCdn && app.opts.cdnUrl) avatarImg = avatarImg.replace('https://i.pximg.net', app.opts.cdnUrl);
+    if (app.opts.useCdn && app.opts.cdnUrl)
+        avatarImg = avatarImg.replace("https://i.pximg.net", app.opts.cdnUrl);
     let html = `
-        <div id="avatarPic"><a href="${lang}/users/${parseInt(pageData.user.userId)}"><img src="${avatarImg}" /></a></div>
-        <div id="avatarUsername"><a href="${lang}/users/${parseInt(pageData.user.userId)}">${pageData.user.name}</a></div>
+        <div id="avatarPic"><a href="${lang}/users/${parseInt(
+        pageData.user.userId
+    )}"><img src="${avatarImg}" /></a></div>
+        <div id="avatarUsername"><a href="${lang}/users/${parseInt(
+        pageData.user.userId
+    )}">${pageData.user.name}</a></div>
         <div id="avatarAction">${follow}</div>
     `;
     avatar.innerHTML = DOMPurify.sanitize(html);
     if (pageData.user.isFollowed == false) {
-        document.getElementById('follow').addEventListener('click', followUser);
+        document.getElementById("follow").addEventListener("click", followUser);
     }
 }
 
@@ -290,7 +357,7 @@ function followUser(e) {
     let token = DOMPurify.sanitize(pageData.token);
     let userId = parseInt(pageData.user.userId);
     //desktop
-    let url = '/bookmark_add.php';
+    let url = "/bookmark_add.php";
     let headers = {
         'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
         'Accept': 'application/json',
@@ -299,8 +366,8 @@ function followUser(e) {
     };
     let body = `mode=add&type=user&user_id=${userId}&tag=&restrict=0&format=json`;
     //mobile
-    if (device == 'mobile') {
-        url = '/touch/ajax_api/ajax_api.php';
+    if (device == "mobile") {
+        url = "/touch/ajax_api/ajax_api.php";
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
             'Accept': 'application/json, text/javascript, */*; q=0.01',
@@ -309,21 +376,21 @@ function followUser(e) {
         body = `mode=add_bookmark_user&restrict=0&tt=${token}&user_id=${userId}`;
     }
     let p = content.fetch(url, {
-            method: "POST",
-            mode: "cors",
-            cache: "no-cache",
-            credentials: "same-origin",
-            redirect: "follow",
-            headers: headers,
-            body: body
-        })
-        .then(r => r.json())
+        method: "POST",
+        mode: "cors",
+        cache: "no-cache",
+        credentials: "same-origin",
+        redirect: "follow",
+        headers: headers,
+        body: body,
+    })
+        .then((r) => r.json())
         .then(() => {
             target.className = 'inactive';
             target.innerHTML = DOMPurify.sanitize(browser.i18n.getMessage('buttonFollowing'));
             browser.runtime.sendMessage({
                 from: "follow",
-                userId: userId
+                userId: userId,
             });
         });
 }
@@ -343,140 +410,118 @@ function unfollowUser(e) {
 }
 
 function addGallery() {
-    let gallery = document.createElement('div');
-    gallery.id = 'gallery';
-    if (app.opts.fitImages) gallery.className = 'fitImages';
-    document.getElementById('minip').appendChild(gallery);
+    let gallery = document.createElement("div");
+    gallery.id = "gallery";
+    if (app.opts.fitImages) gallery.className = "fitImages";
+    document.getElementById("minip").appendChild(gallery);
 }
 
 async function download(e) {
-    e.preventDefault()
-    console.log(pageData)
-    console.log("download");
+    e.preventDefault();
+    var wait = notyf.open({
+        type: "waiting",
+        message: "<b>Downloading...</b>",
+    });
     if (pageData.illust.illustType === 2) {
-        console.log("UGOIRA DOWNLOAD");
-        let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ").apng";
-        console.log(pageData.ugoiraData);
-
-        let canvas = document.createElement("canvas")
-        canvas.width = pageData.ugoiraData.width;
-        canvas.height = pageData.ugoiraData.height;
-        var encoder = new APNGencoder(canvas);
-        encoder.setRepeat(0);
-
-        encoder.start();
-
-        for (let i = 0; i < pageData.ugoira.length; i++) {
-            await new Promise(resolve => {
-                encoder.setDelay(Math.max(1, Math.floor(pageData.ugoira[i].delay / 10)));
-                let image = document.createElement("img");
-                let ctx = canvas.getContext("2d");
-                image.onload = () => {
-                    ctx.drawImage(image, 0, 0);
-                    encoder.addFrame()
-                    resolve();
-                }
-                image.src = pageData.ugoira[i].src;
-            })
+        try {
+            notyf.dismiss(wait);
+            saveAs(
+                pageData.ugoiraData.zipFile,
+                pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ").zip"
+            );
+            notyf.open({
+                type: "success",
+                message: "<b>Success!</b>",
+            });
+        } catch (error) {
+            notyf.dismiss(wait);
+            notyf.open({
+                type: "failure",
+                message: "<b>Error</b>: " + error,
+            });
         }
-
-        encoder.finish();
-
-        var base64Out = bytesToBase64(encoder.stream().bin);
-
-        var img = document.createElement("img");
-        img.style.width = canvas.width;
-        img.style.height = canvas.height;
-        img.src = "data:image/png;base64," + base64Out;
-        document.body.appendChild(img);
-
-        saveAs("data:image/vnd.mozilla.apng;base64," + base64Out, filename);
-
-        /*
-        var gif = new GIF({
-            workers: 2,
-            quality: 1,
-            width: pageData.ugoiraData.width,
-            height: pageData.ugoiraData.height,
-            workerScript: browser.runtime.getURL(
-                "gif.worker.js"
-              )
-        })
-        console.log(gif);
-        
-        for (let i = 0; i < pageData.ugoira.length; i++){
-            await new Promise(resolve => {
-                let image = document.createElement("img");
-                image.onload = () =>{
-                    gif.addFrame(image, {delay: pageData.ugoira[i].delay})
-                    resolve();
-                }
-                image.src = pageData.ugoira[i].src;
-            })
-        }
-        gif.on('finished', function(blob){
-            console.log("FINISHED");
-            window.open(URL.createObjectURL(blob));
-
-            saveAs(blob, filename);
-        })
-
-        gif.render();
-        */
     } else if (pageData.illust.pageCount === 1) {
         let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ")_0";
+        filename = filename
+            .trim()
+            .replace(/[\\/:*?\"<>|\.]/g, "")
+            .substring(0, 240);
         let url = pageData.illust.images[0].original;
-        console.log(url);
-        content.fetch(url, {
-            referrer: "https://www.pixiv.net/",
-            headers: {
-                "Host": "pixiv.net"
-            }
-        }).then(function (resp) {
-            console.log(resp)
-            resp.blob().then(function (blob) {
-                console.log(blob)
-                saveAs(blob, filename);
+        content
+            .fetch(url, {
+                referrer: "https://www.pixiv.net/",
+                headers: {
+                    Host: "pixiv.net",
+                },
+            })
+            .then(function (resp) {
+                resp.blob().then(function (blob) {
+                    notyf.dismiss(wait);
+                    saveAs(blob, filename);
+                    notyf.open({
+                        type: "success",
+                        message: "<b>Success!</b>",
+                    });
+                });
+            })
+            .catch(function (e) {
+                notyf.dismiss(wait);
+                notyf.open({
+                    type: "failure",
+                    message: "<b>Error</b>: " + e,
+                });
             });
-        });
     } else {
         var zip = new JSZip();
         let promises = [];
         for (let index = 0; index < pageData.illust.pageCount; index++) {
             var element = pageData.illust.images[index];
             let url = element.original;
-            let extension = url.substring(url.lastIndexOf("."))
+            let extension = url.substring(url.lastIndexOf("."));
             let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ")_" + index + extension;
-            promises.push(content.fetch(url, {
-                    referrer: "https://www.pixiv.net/"
-                }).then(response => response.blob())
-                .then(blob => {
-                    return new Promise(function (resolve) {
-                        console.log(blob);
-                        var reader = new FileReader();
-                        reader.readAsDataURL(blob);
-                        reader.onloadend = function () {
-                            var base64data = reader.result;
-                            var trimmed = base64data.substr(base64data.indexOf(',') + 1)
-                            console.log(base64data);
-                            console.log(trimmed);
-                            zip.file(filename, trimmed, {
-                                base64: true
-                            });
-                            console.log(zip)
-                            resolve();
-                        }
+            promises.push(
+                content
+                    .fetch(url, {
+                        referrer: "https://www.pixiv.net/",
                     })
-                }));
+                    .then((response) => response.blob())
+                    .then((blob) => {
+                        return new Promise(function (resolve) {
+                            var reader = new FileReader();
+                            reader.readAsDataURL(blob);
+                            reader.onloadend = function () {
+                                var base64data = reader.result;
+                                var trimmed = base64data.substr(base64data.indexOf(",") + 1);
+                                zip.file(filename, trimmed, {
+                                    base64: true,
+                                });
+                                resolve();
+                            };
+                        });
+                    }).catch(function (e) {
+                        notyf.dismiss(wait);
+                        notyf.open({
+                            type: "failure",
+                            message: "<b>Error</b>: " + e,
+                        });
+                    })
+            );
         }
         Promise.allSettled(promises).then(function () {
-            console.log(JSON.stringify(zip))
-            zip.generateAsync({
-                type: 'blob'
-            }).then(function (content) {
-                saveAs(content, pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ").zip");
+            zip
+                .generateAsync({
+                    type: "blob",
+                })
+                .then(function (content) {
+                    saveAs(content, pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ").zip");
+                });
+        }).catch(function (e) {
+            notyf.dismiss(wait);
+            notyf.open({
+                type: "failure",
+                message: "<b>Error</b>: " + e,
             });
-        })
+        });
     }
 }
 
@@ -485,21 +530,21 @@ function addIllusts() {
     let gallery = document.getElementById('gallery');
     let images = [];
     for (let i = 0; i < pageData.illust.pageCount; i++) {
-        let imgMaster = pageData.illust.urls.regular.replace('p0', 'p' + i);
-        let imgOriginal = pageData.illust.urls.original.replace('p0', 'p' + i);
+        let imgMaster = pageData.illust.urls.regular.replace("p0", "p" + i);
+        let imgOriginal = pageData.illust.urls.original.replace("p0", "p" + i);
         if (app.opts.useCdn && app.opts.cdnUrl) {
             imgMaster = imgMaster.replace('https://i.pximg.net', app.opts.cdnUrl);
             imgOriginal = imgOriginal.replace('https://i.pximg.net', app.opts.cdnUrl);
         }
         images.push({
             master: imgMaster,
-            original: imgOriginal
+            original: imgOriginal,
         });
     }
     let html = '';
     let i = 0;
     for (let item of images) {
-        let src = item.master
+        let src = item.master;
         //let src = (app.opts.loadMaster ? item.master : item.original);
         html += `
             <div>
@@ -509,27 +554,34 @@ function addIllusts() {
         `;
     }
     gallery.innerHTML = DOMPurify.sanitize(html);
-    let items = gallery.getElementsByTagName('img');
+    let items = gallery.getElementsByTagName("img");
     for (let image of items) {
-        image.addEventListener('error', onImgError);
+        image.addEventListener("error", onImgError);
     }
     pageData.illust.images = images;
 }
 
 function onImgError(event) {
-    browser.runtime.sendMessage({
-        from: "imgError"
-    }, function (data) {
-        let reloadAlert = document.createElement('b');
-        reloadAlert.innerHTML = DOMPurify.sanitize(browser.i18n.getMessage('imageError', data.timeout));
-        event.target.parentNode.className = 'error';
-        event.target.parentNode.appendChild(reloadAlert);
-        setTimeout(() => {
-            event.target.parentNode.className = '';
-            event.target.parentNode.removeChild(event.target.parentNode.getElementsByTagName('b')[0]);
-            event.target.src = event.target.src;
-        }, data.timeout * 1000);
-    });
+    browser.runtime.sendMessage(
+        {
+            from: "imgError",
+        },
+        function (data) {
+            let reloadAlert = document.createElement("b");
+            reloadAlert.innerHTML = DOMPurify.sanitize(
+                browser.i18n.getMessage("imageError", data.timeout)
+            );
+            event.target.parentNode.className = "error";
+            event.target.parentNode.appendChild(reloadAlert);
+            setTimeout(() => {
+                event.target.parentNode.className = "";
+                event.target.parentNode.removeChild(
+                    event.target.parentNode.getElementsByTagName("b")[0]
+                );
+                event.target.src = event.target.src;
+            }, data.timeout * 1000);
+        }
+    );
 }
 
 function addInfo() {
@@ -595,9 +647,9 @@ function addInfo() {
         <path d="M143.483,331.4h202.8c9.5,0,17.2-7.7,17.2-17.1c0-9.5-7.7-17.2-17.2-17.2h-202.8c-9.5,0-17.2,7.7-17.2,17.2
         C126.283,323.7,133.983,331.4,143.483,331.4z"/></g></svg>
     `;
-    let info = document.createElement('div');
-    info.id = 'illustInfo';
-    document.getElementById('minip').appendChild(info);
+    let info = document.createElement("div");
+    info.id = "illustInfo";
+    document.getElementById("minip").appendChild(info);
     //title
     let html = `<div id="mini-title"><b>${pageData.illust.title}</b>`;
     //like
@@ -616,7 +668,9 @@ function addInfo() {
     html += `</div>`;
     //desc
     if (pageData.illust.description.length != 0) {
-        html += `<div id="description">${decode(pageData.illust.description)}</div>`;
+        html += `<div id="description">${decode(
+            pageData.illust.description
+        )}</div>`;
     }
     //tags
     html += `<div id="tags">`;
@@ -630,60 +684,79 @@ function addInfo() {
     html += `</div>`;
     //stats
     let utcdate = new Date(pageData.illust.uploadDate); // eg 2017-10-22T04:47:25+00:00
-    let localdate = utcdate.getFullYear() + '-' +
-        ('0' + (utcdate.getMonth() + 1)).slice(-2) + '-' +
-        ('0' + utcdate.getDate()).slice(-2) + ' ' +
-        ('0' + utcdate.getHours()).slice(-2) + ':' +
-        ('0' + utcdate.getMinutes()).slice(-2) + ' ' +
-        utcdate.toString().replace(/.* \w{3}(.\d{4}) .*/, '$1');
+    let localdate =
+        utcdate.getFullYear() +
+        "-" +
+        ("0" + (utcdate.getMonth() + 1)).slice(-2) +
+        "-" +
+        ("0" + utcdate.getDate()).slice(-2) +
+        " " +
+        ("0" + utcdate.getHours()).slice(-2) +
+        ":" +
+        ("0" + utcdate.getMinutes()).slice(-2) +
+        " " +
+        utcdate.toString().replace(/.* \w{3}(.\d{4}) .*/, "$1");
     html += `
         <div id="stats">
             <span id="uploadDate">${svgDate}${localdate}</span>
-            <span id="viewCount">${svgView}${parseInt(pageData.illust.viewCount)}</span>
-            <span id="commentCount">${svgComment}${parseInt(pageData.illust.commentCount)}</span>
-            <span id="likeCount">${svgLike}<u>${parseInt(pageData.illust.likeCount)}</u></span>
-            <span id="bookmarkCount">${svgBookmark}<u>${parseInt(pageData.illust.bookmarkCount)}</u></span>
+            <span id="viewCount">${svgView}${parseInt(
+        pageData.illust.viewCount
+    )}</span>
+            <span id="commentCount">${svgComment}${parseInt(
+        pageData.illust.commentCount
+    )}</span>
+            <span id="likeCount">${svgLike}<u>${parseInt(
+        pageData.illust.likeCount
+    )}</u></span>
+            <span id="bookmarkCount">${svgBookmark}<u>${parseInt(
+        pageData.illust.bookmarkCount
+    )}</u></span>
         </div>
     `;
     info.innerHTML = DOMPurify.sanitize(html);
     if (pageData.illust.likeData == false) {
-        document.getElementById('like').addEventListener('click', like);
+        document.getElementById("like").addEventListener("click", like);
     }
     if (pageData.illust.bookmarkData == null) {
-        document.getElementById('bookmark').addEventListener('click', bookmark);
+        document.getElementById("bookmark").addEventListener("click", bookmark);
     }
-    document.addEventListener('keypress', keypress);
-    document.getElementById("download").addEventListener('click', download);
+    document.addEventListener("keypress", keypress);
+    document.getElementById("download").addEventListener("click", download);
 }
 
 function like(e) {
     e.preventDefault();
-    let target = document.getElementById('like');
-    target.removeEventListener('click', like);
+    let target = document.getElementById("like");
+    target.removeEventListener("click", like);
     if (pageData.token == null) return;
     let token = DOMPurify.sanitize(pageData.token);
     let illustId = parseInt(pageData.illust.illustId);
-    let p = content.fetch('/ajax/illusts/like', {
+    let p = content
+        .fetch("/ajax/illusts/like", {
             method: "POST",
             mode: "cors",
             cache: "no-cache",
             credentials: "same-origin",
             redirect: "follow",
             headers: {
-                'Content-Type': 'application/json; charset=utf-8',
-                'Accept': 'application/json',
-                'x-csrf-token': token
+                "Content-Type": "application/json; charset=utf-8",
+                Accept: "application/json",
+                "x-csrf-token": token,
             },
             body: JSON.stringify({
-                illust_id: illustId
-            })
+                illust_id: illustId,
+            }),
         })
-        .then(r => r.json())
+        .then((r) => r.json())
         .then(() => {
-            target.className = 'inactive';
-            target.innerHTML = `<i class="fas fa-thumbs-up"></i>`
-            let likeCount = document.getElementById('likeCount').getElementsByTagName('u')[0];
-            likeCount.innerHTML = DOMPurify.sanitize(parseInt(likeCount.innerHTML) + 1);
+            target.className = "inactive";
+            target.innerHTML = `<i class="fas fa-thumbs-up"></i>`;
+            let likeCount = document
+                .getElementById("likeCount")
+                .getElementsByTagName("u")[0];
+            likeCount.innerHTML = DOMPurify.sanitize(
+                parseInt(likeCount.innerHTML) + 1
+            );
         });
 }
 
@@ -698,40 +771,47 @@ function keypress(e) {
 
 function bookmark(e) {
     e.preventDefault();
-    let target = document.getElementById('bookmark');
-    target.removeEventListener('click', bookmark);
+    let target = document.getElementById("bookmark");
+    target.removeEventListener("click", bookmark);
     if (pageData.token == null) return;
     let token = DOMPurify.sanitize(pageData.token);
     let illustId = parseInt(pageData.illust.id);
-    let p = content.fetch('/ajax/illusts/bookmarks/add', {
+    let p = content
+        .fetch("/ajax/illusts/bookmarks/add", {
             method: "POST",
             mode: "cors",
             cache: "no-cache",
             credentials: "same-origin",
             redirect: "follow",
             headers: {
-                'Content-Type': 'application/json; charset=utf-8',
-                'Accept': 'application/json',
-                'x-csrf-token': token
+                "Content-Type": "application/json; charset=utf-8",
+                Accept: "application/json",
+                "x-csrf-token": token,
             },
-            body: '{"illust_id":"' + illustId + '","restrict":0,"comment":"","tags":[]}'
+            body:
+                '{"illust_id":"' + illustId + '","restrict":0,"comment":"","tags":[]}',
         })
         //.then(r => r.json())
         .then(() => {
-            target.className = 'inactive';
+            target.className = "inactive";
             target.innerHTML = `<i class="fas fa-heart"></i>`;
-            let bookmarkCount = document.getElementById('bookmarkCount').getElementsByTagName('u')[0];
-            bookmarkCount.innerHTML = DOMPurify.sanitize(parseInt(bookmarkCount.innerHTML) + 1);
+            let bookmarkCount = document
+                .getElementById("bookmarkCount")
+                .getElementsByTagName("u")[0];
+            bookmarkCount.innerHTML = DOMPurify.sanitize(
+                parseInt(bookmarkCount.innerHTML) + 1
+            );
         });
 }
 
 function getUgoiraData() {
     if (pageData.illust.illustType != 2) return;
-    let gallery = document.getElementById('gallery');
+    let gallery = document.getElementById("gallery");
     let html = `
         <div>
-            <p id="loading">${browser.i18n.getMessage('loadingData')}</p>
-            <a id="ugoira" href="#"><img src="${pageData.illust.urls.regular}" /></a>
+            <p id="loading">${browser.i18n.getMessage("loadingData")}</p>
+            <a id="ugoira" href="#"><img src="${pageData.illust.urls.regular
+        }" /></a>
         </div>
     `;
     gallery.innerHTML = DOMPurify.sanitize(html);
@@ -739,62 +819,94 @@ function getUgoiraData() {
     if (pageData.ugoiraData.src != undefined) return;
     //fetch
     let illustId = parseInt(pageData.illust.id);
-    return content.fetch('/ajax/illust/' + illustId + '/ugoira_meta', {
-            credentials: 'same-origin'
+    return content
+        .fetch("/ajax/illust/" + illustId + "/ugoira_meta", {
+            credentials: "same-origin",
         })
-        .then(r => r.json())
-        .then(r => r.body)
-        .then(data => {
+        .then((r) => r.json())
+        .then((r) => r.body)
+        .then((data) => {
             pageData.ugoiraData = data;
         });
 }
 
 function downloadUgoira() {
     if (pageData.illust.illustType != 2) return;
-    let loading = document.getElementById('loading');
-    return new Promise(resolve => {
-        browser.runtime.sendMessage({
-            from: "ugoira"
-        }, function () {
-            let ugoiraSrc = pageData.ugoiraData.src;
-            if (app.opts.useCdn && app.opts.cdnUrl) ugoiraSrc = ugoiraSrc.replace('https://i.pximg.net', app.opts.cdnUrl);
-            ugoiraSrc = DOMPurify.sanitize(ugoiraSrc);
-            content.fetch(ugoiraSrc, {
-                    credentials: 'same-origin'
-                })
-                .then(r => {
-                    pageData.ugoiraData.size = (parseInt(r.headers.get('Content-Length')) / 1024 / 1024).toFixed(2);
-                    loading.innerHTML = DOMPurify.sanitize(browser.i18n.getMessage('loadingFrames', [pageData.ugoiraData.frames.length, pageData.ugoiraData.size]));
-                    return r.blob();
-                })
-                .then(data => new Promise(r => extractUgoiraZip(r, data)))
-                .then(() => resolve());
-        });
+    let loading = document.getElementById("loading");
+    return new Promise((resolve) => {
+        browser.runtime.sendMessage(
+            {
+                from: "ugoira",
+            },
+            function () {
+                let ugoiraSrc = pageData.ugoiraData.src;
+                if (app.opts.useCdn && app.opts.cdnUrl)
+                    ugoiraSrc = ugoiraSrc.replace("https://i.pximg.net", app.opts.cdnUrl);
+                ugoiraSrc = DOMPurify.sanitize(ugoiraSrc);
+                content
+                    .fetch(ugoiraSrc, {
+                        credentials: "same-origin",
+                    })
+                    .then((r) => {
+                        pageData.ugoiraData.size = (
+                            parseInt(r.headers.get("Content-Length")) /
+                            1024 /
+                            1024
+                        ).toFixed(2);
+                        loading.innerHTML = DOMPurify.sanitize(
+                            browser.i18n.getMessage("loadingFrames", [
+                                pageData.ugoiraData.frames.length,
+                                pageData.ugoiraData.size,
+                            ])
+                        );
+                        return r.blob();
+                    })
+                    .then(
+                        (data) =>
+                            new Promise((r) => {
+                                pageData.ugoiraData.zipFile = data;
+                                extractUgoiraZip(r, data);
+                            })
+                    )
+                    .then(() => resolve());
+            }
+        );
     });
 }
 
 function extractUgoiraZip(resolve, data) {
     zip.useWebWorkers = false;
-    zip.createReader(new zip.BlobReader(data), function (reader) {
-        reader.getEntries(function (entries) {
-            for (let i = 0; i < entries.length; i++) {
-                entries[i].getData(new zip.BlobWriter(), function (blob) {
-                    pageData.ugoira.push({
-                        src: URL.createObjectURL(blob),
-                        blob: blob,
-                        delay: pageData.ugoiraData.frames[i].delay
-                    });
-                    if (i == (entries.length - 1)) resolve();
-                }, function (current, total) {});
-            }
-        });
-    }, function (err) {});
+    zip.createReader(
+        new zip.BlobReader(data),
+        function (reader) {
+            reader.getEntries(function (entries) {
+                for (let i = 0; i < entries.length; i++) {
+                    entries[i].getData(
+                        new zip.BlobWriter(),
+                        function (blob) {
+                            pageData.ugoira.push({
+                                src: URL.createObjectURL(blob),
+                                blob: blob,
+                                delay: pageData.ugoiraData.frames[i].delay,
+                            });
+                            if (i == entries.length - 1) resolve();
+                        },
+                        function (current, total) { }
+                    );
+                }
+            });
+        },
+        function (err) { }
+    );
 }
 
 function addUgoira() {
     if (pageData.illust.illustType != 2) return;
-    let gallery = document.getElementById('gallery');
-    let msg = browser.i18n.getMessage('framesLoaded', [pageData.ugoiraData.frames.length, pageData.ugoiraData.size]);
+    let gallery = document.getElementById("gallery");
+    let msg = browser.i18n.getMessage("framesLoaded", [
+        pageData.ugoiraData.frames.length,
+        pageData.ugoiraData.size,
+    ]);
     let html = `
         <div>
             <p>${msg}</p>
@@ -807,7 +919,7 @@ function addUgoira() {
 }
 
 function animate() {
-    let ugoira = document.getElementById('ugoira');
+    let ugoira = document.getElementById("ugoira");
     let frame = parseInt(ugoira.dataset.frame) + 1;
     if (frame >= pageData.ugoiraData.frames.length) frame = 0;
     ugoira.dataset.frame = frame;
@@ -817,7 +929,7 @@ function animate() {
             pageData.ugoiraData.width = ugoira.children[0].width;
             pageData.ugoiraData.height = ugoira.children[0].height;
             ugoira.children[0].onload = null;
-        }
+        };
     }
     //anim = requestAnimationFrame(animate);
     anim = setTimeout(animate, pageData.ugoira[frame].delay);
@@ -829,16 +941,17 @@ function getComments() {
 
 function getRecommend() {
     let illustId = parseInt(pageData.illust.illustId);
-    let p = content.fetch('/ajax/illust/' + illustId + '/recommend/init?limit=18', {
+    let p = content
+        .fetch("/ajax/illust/" + illustId + "/recommend/init?limit=18", {
             credentials: "same-origin",
             redirect: "follow",
             headers: {
-                'Accept': 'application/json'
-            }
+                Accept: "application/json",
+            },
         })
-        .then(r => r.json())
-        .then(data => {
-            if (data.error) throw 'Error loading recommendations.';
+        .then((r) => r.json())
+        .then((data) => {
+            if (data.error) throw "Error loading recommendations.";
             pageData.recommend = data.body;
             pageData.recommend.morePage = 0;
             addRecommend();
@@ -847,39 +960,42 @@ function getRecommend() {
 
 function getMoreRecommend(e) {
     e.preventDefault();
-    let target = document.getElementById('getMoreRecommend');
-    target.removeEventListener('click', getMoreRecommend);
+    let target = document.getElementById("getMoreRecommend");
+    target.removeEventListener("click", getMoreRecommend);
     if (pageData.recommend.morePage > 4) return;
     let pageBegin = pageData.recommend.morePage * 18;
     let pageEnd = pageBegin + 17;
-    let params = '';
+    let params = "";
     for (let i = pageBegin; i <= pageEnd; i++) {
-        params += 'illust_ids[]=' + pageData.recommend.nextIds[i];
-        if (i < pageEnd) params += '&';
+        params += "illust_ids[]=" + pageData.recommend.nextIds[i];
+        if (i < pageEnd) params += "&";
     }
-    let p = content.fetch('/ajax/illust/recommend/illusts?' + params, {
+    let p = content
+        .fetch("/ajax/illust/recommend/illusts?" + params, {
             credentials: "same-origin",
             redirect: "follow",
             headers: {
-                'Accept': 'application/json'
-            }
+                Accept: "application/json",
+            },
         })
-        .then(r => r.json())
-        .then(data => {
+        .then((r) => r.json())
+        .then((data) => {
             pageData.recommend.morePage += 1;
             if (pageData.recommend.morePage > 4) {
-                document.getElementById('getMoreRecommend').className = 'inactive';
+                document.getElementById("getMoreRecommend").className = "inactive";
             }
-            target.addEventListener('click', getMoreRecommend);
-            if (data.error) throw 'Error loading recommendations.';
+            target.addEventListener("click", getMoreRecommend);
+            if (data.error) throw "Error loading recommendations.";
             let html = makeRecommendHtml(data.body.illusts);
-            document.getElementById('recommend').getElementsByTagName('ul')[0].innerHTML += DOMPurify.sanitize(html);
-            window.dispatchEvent(loaded_recs)
+            document
+                .getElementById("recommend")
+                .getElementsByTagName("ul")[0].innerHTML += DOMPurify.sanitize(html);
+            window.dispatchEvent(loaded_recs);
         });
 }
 
 function addRecommend() {
-    let html = '<ul>';
+    let html = "<ul>";
     html += makeRecommendHtml(pageData.recommend.illusts);
     html += '</ul>';
     let recommend = document.createElement('div');
@@ -927,12 +1043,11 @@ window.addEventListener('loaded_chunks', (event) => {
 
     if ("IntersectionObserver" in window) {
         lazyloadImages = document.querySelectorAll("#userGallery .lazy-img");
-        console.log(lazyloadImages)
         var imageObserver = new IntersectionObserver(function (entries, observer) {
             entries.forEach(function (entry) {
                 if (entry.isIntersecting) {
                     var image = entry.target;
-                    image.style.backgroundImage = `url('${image.dataset.src}')`
+                    image.style.backgroundImage = `url('${image.dataset.src}')`;
                     image.classList.remove("lazy-img");
                     imageObserver.unobserve(image);
                 }
@@ -940,23 +1055,21 @@ window.addEventListener('loaded_chunks', (event) => {
         });
 
         lazyloadImages.forEach(function (image) {
-            console.log(image);
             imageObserver.observe(image);
         });
     }
 });
 
-window.addEventListener('loaded_recs', (event) => {
+window.addEventListener("loaded_recs", (event) => {
     var lazyloadImages;
 
     if ("IntersectionObserver" in window) {
         lazyloadImages = document.querySelectorAll("#recommend .lazy-img");
-        console.log(lazyloadImages)
         var imageObserver = new IntersectionObserver(function (entries, observer) {
             entries.forEach(function (entry) {
                 if (entry.isIntersecting) {
                     var image = entry.target;
-                    image.style.backgroundImage = `url('${image.dataset.src}')`
+                    image.style.backgroundImage = `url('${image.dataset.src}')`;
                     image.classList.remove("lazy-img");
                     imageObserver.unobserve(image);
                 }
@@ -964,7 +1077,6 @@ window.addEventListener('loaded_recs', (event) => {
         });
 
         lazyloadImages.forEach(function (image) {
-            console.log(image);
             imageObserver.observe(image);
         });
     }
