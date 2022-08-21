@@ -4,6 +4,81 @@ let app = {
     opts: {}
 };
 
+const pix_regex = /((https?:\/\/)?www\.)?pixiv\.net\/en\/artworks\/\d+/;
+
+async function getSelectedTab() {
+    var selected_tabs = await browser.tabs.query({
+        highlighted: true,
+        currentWindow: true
+    });
+    var current_tab = selected_tabs[0];
+    return current_tab;
+}
+
+var promiseResolve, promiseReject;
+
+async function downloadAllPixivPages() {
+    var current_tab = await getSelectedTab();
+    while (current_tab.url.match(pix_regex)) {
+        downloadPixivPage();
+        var promise = new Promise(function (resolve, reject) {
+            promiseResolve = resolve;
+            promiseReject = reject;
+        });
+        await promise;
+        current_tab = await getSelectedTab();
+    }
+}
+
+async function downloadPixivPage() {
+    var current_tab = await getSelectedTab();
+    console.log(current_tab);
+    browser.tabs.sendMessage(
+        current_tab.id,
+        "download"
+    )
+}
+
+browser.runtime.onMessage.addListener(async function (message) {
+    console.log(message);
+    var current_tab = await getSelectedTab();
+    console.log(current_tab);
+    if (message === "success") {
+        browser.tabs.remove(current_tab.id);
+        promiseResolve();
+    } else {
+        promiseReject();
+    }
+});
+
+browser.browserAction.onClicked.addListener(downloadAllPixivPages)
+
+const downloadPixivPageMenuId = "download-pixiv-page";
+browser.contextMenus.create({
+    id: downloadPixivPageMenuId,
+    title: "Download Pixiv Illustration",
+    contexts: ["tab"]
+});
+
+const downloadAllPixivPagesMenuId = "download-all-pixiv-pages";
+browser.contextMenus.create({
+    id: downloadAllPixivPagesMenuId,
+    title: "Download all Pixiv pages",
+    contexts: ["tab"]
+});
+
+// eslint-disable-next-line no-unused-vars
+browser.contextMenus.onClicked.addListener((info, tab) => {
+    switch (info.menuItemId) {
+        case downloadPixivPageMenuId:
+            downloadPixivPage();
+            break;
+        case downloadAllPixivPagesMenuId:
+            downloadAllPixivPages();
+            break;
+    }
+});
+
 let layout = `<!doctype html>
 <head>
     <meta charset="utf-8" />

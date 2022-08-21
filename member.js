@@ -154,29 +154,40 @@ function processPage() {
     return new Promise(resolve => getAppData(resolve))
         .then(() => getMemberData())
         .then(() => {
+            console.log("9")
             addLayout();
+            console.log("8")
             addProfile();
+            console.log("7")
             addInfo();
+            console.log("6")
             addList();
+            console.log("5")
         })
         .then(() => getIllustIds())
         .then(() => getIllusts())
         .then(() => getBookmarks())
         .then(() => {
+            console.log("4")
             if (tagFromUrl) {
+                console.log("FROM URL")
                 all_illusts_promise.then(() => {
                     getTagIllusts(tagFromUrl)
                     addIllusts(page, tag_illustrations[tagFromUrl]);
                     addPagination(page, tag_illustrations[tagFromUrl]);
                 })
             } else {
+                console.log("NOT FROM URL")
                 addIllusts(page, pageData.illusts);
                 all_illusts_promise.then(() => {
                     addPagination(page, pageData.illusts);
                 });
             }
+            console.log("3")
             addHeader();
+            console.log("2")
             addBookmarks();
+            console.log("1")
         })
         .then(() => getTags())
         .then(() => addTags())
@@ -567,10 +578,21 @@ function getIllustIds() {
 }
 
 function getIllusts() {
+
+    console.log("GET ILLUSTS")
+
     if (type == 'bookmark') return;
     //bg cache
-    if (page in pageData.illusts) return;
+
+    console.log("BOOKMARK")
+
+    if (page in pageData.illusts){
+        all_illusts_promise = new Promise(resolve => resolve())
+        return;
+    } 
     //fetch
+
+    console.log("cached pagedata")
 
     let reverseIds = [];
     for (let id in pageData.illustIds) {
@@ -580,7 +602,7 @@ function getIllusts() {
         return b - a
     });
 
-    var return_promise;
+    //var return_promise;
 
     let promises = []
     for (let j = 1; j <= pageData.totalIllustPages; j++) {
@@ -602,12 +624,14 @@ function getIllusts() {
             .then(r => r.body)
             .then(data => pageData.illusts[j] = data.works);
         promises.push(x)
-        if (page == j) return_promise = x;
+        console.log("j: " + j + " (" + x + ")");
+        //if (page == j) return_promise = x;
     }
 
     all_illusts_promise = Promise.allSettled(promises);
+    console.log("All Illusts: " + all_illusts_promise)
 
-    return return_promise;
+    return all_illusts_promise;
 }
 
 function getBookmarks() {

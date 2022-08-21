@@ -6,8 +6,7 @@ const notyf = new Notyf({
         x: "left",
         y: "top",
     },
-    types: [
-        {
+    types: [{
             type: "waiting",
             background: "cornflowerblue",
             icon: {
@@ -100,8 +99,7 @@ function processPage() {
 }
 
 function getAppData(resolve) {
-    browser.runtime.sendMessage(
-        {
+    browser.runtime.sendMessage({
             from: "getAppData",
         },
         function (data) {
@@ -113,8 +111,7 @@ function getAppData(resolve) {
 
 function getIllustData() {
     return new Promise((resolve) => {
-        browser.runtime.sendMessage(
-            {
+        browser.runtime.sendMessage({
                 from: "illust",
             },
             function (data) {
@@ -235,18 +232,18 @@ function addUserIllusts() {
 
             promises.push(
                 content
-                    .fetch(url, {
-                        credentials: "same-origin",
-                    })
-                    .then((r) => r.json())
-                    .then((data) => {
-                        let illusts = Object.values(data.body);
-                        illusts.sort(function (a, b) {
-                            return b.id - a.id;
-                        });
-                        var html = makeRecommendHtml(illusts);
-                        illustration_chunks[i] = DOMPurify.sanitize(html);
-                    })
+                .fetch(url, {
+                    credentials: "same-origin",
+                })
+                .then((r) => r.json())
+                .then((data) => {
+                    let illusts = Object.values(data.body);
+                    illusts.sort(function (a, b) {
+                        return b.id - a.id;
+                    });
+                    var html = makeRecommendHtml(illusts);
+                    illustration_chunks[i] = DOMPurify.sanitize(html);
+                })
             );
         }
         Promise.allSettled(promises).then((x) => {
@@ -376,14 +373,14 @@ function followUser(e) {
         body = `mode=add_bookmark_user&restrict=0&tt=${token}&user_id=${userId}`;
     }
     let p = content.fetch(url, {
-        method: "POST",
-        mode: "cors",
-        cache: "no-cache",
-        credentials: "same-origin",
-        redirect: "follow",
-        headers: headers,
-        body: body,
-    })
+            method: "POST",
+            mode: "cors",
+            cache: "no-cache",
+            credentials: "same-origin",
+            redirect: "follow",
+            headers: headers,
+            body: body,
+        })
         .then((r) => r.json())
         .then(() => {
             target.className = 'inactive';
@@ -416,77 +413,120 @@ function addGallery() {
     document.getElementById("minip").appendChild(gallery);
 }
 
-async function download(e) {
-    e.preventDefault();
-    var wait = notyf.open({
-        type: "waiting",
-        message: "<b>Downloading...</b>",
-    });
-    if (pageData.illust.illustType === 2) {
-        try {
-            notyf.dismiss(wait);
-            saveAs(
-                pageData.ugoiraData.zipFile,
-                pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ").zip"
-            );
+function saveFile(blob, filename) {
+    let formData = new FormData();
+    formData.append("fileupload", blob, filename);
+    formData.set("tags", JSON.stringify(pageData.illust.tags.tags))
+
+    return new Promise((resolve, reject) => {
+        fetch("http://localhost:8080/api/download", {
+            method: "POST",
+            mode: "cors",
+            headers: {
+                Host: "http://localhost",
+            },
+            body: formData
+        }).then((data) => {
+            notyf.dismissAll()
             notyf.open({
                 type: "success",
                 message: "<b>Success!</b>",
             });
-        } catch (error) {
-            notyf.dismiss(wait);
+            resolve();
+        }).catch((error) => {
+            notyf.dismissAll()
             notyf.open({
                 type: "failure",
-                message: "<b>Error</b>: " + error,
+                message: "<b>Error</b>: " + e,
             });
-        }
-    } else if (pageData.illust.pageCount === 1) {
-        let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ")_0";
-        filename = filename
-            .trim()
-            .replace(/[\\/:*?\"<>|\.]/g, "")
-            .substring(0, 240);
-        let url = pageData.illust.images[0].original;
-        content
-            .fetch(url, {
-                referrer: "https://www.pixiv.net/",
-                headers: {
-                    Host: "pixiv.net",
-                },
-            })
-            .then(function (resp) {
-                resp.blob().then(function (blob) {
-                    notyf.dismiss(wait);
-                    saveAs(blob, filename);
-                    notyf.open({
-                        type: "success",
-                        message: "<b>Success!</b>",
-                    });
+            reject();
+        });
+    });
+}
+
+browser.runtime.onMessage.addListener(function(message){
+    console.log(message);
+    if(message === "download"){
+        bookmark(new Event("ignorable"));
+        download(new Event("ignorable")).then(function(){
+            browser.runtime.sendMessage("success")
+        }).catch(function(){
+            browser.runtime.sendMessage("fail")
+        })
+    }
+});
+
+async function download(e) {
+    e.preventDefault();
+    notyf.open({
+        type: "waiting",
+        message: "<b>Downloading...</b>",
+    });
+    return new Promise((resolve_download, reject_download) =>{
+        if (pageData.illust.illustType === 2) {
+            try {
+                notyf.dismissAll();
+                let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ").zip";
+                saveFile(pageData.ugoiraData.zipFile, filename).then(function(){
+                    resolve_download();
+                }).catch(function(error){
+                    console.log(error);
+                    reject_download();
                 });
-            })
-            .catch(function (e) {
-                notyf.dismiss(wait);
+            } catch (error) {
+                notyf.dismissAll();
                 notyf.open({
                     type: "failure",
-                    message: "<b>Error</b>: " + e,
+                    message: "<b>Error</b>: " + error,
                 });
-            });
-    } else {
-        var zip = new JSZip();
-        let promises = [];
-        for (let index = 0; index < pageData.illust.pageCount; index++) {
-            var element = pageData.illust.images[index];
-            let url = element.original;
-            let extension = url.substring(url.lastIndexOf("."));
-            let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ")_" + index + extension;
-            promises.push(
-                content
+            }
+        } else if (pageData.illust.pageCount === 1) {
+            let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ")_0";
+            filename = filename
+                .trim()
+                .replace(/[\\/:*?\"<>|\.]/g, "")
+                .substring(0, 240);
+            let url = pageData.illust.images[0].original;
+            content
+                .fetch(url, {
+                    referrer: "https://www.pixiv.net/",
+                    headers: {
+                        Host: "pixiv.net",
+                    },
+                })
+                .then(function (resp) {
+                    resp.blob().then(function (blob) {
+                        saveFile(blob, filename).then(function(){
+                            resolve_download();
+                        }).catch(function(error){
+                            console.log(error);
+                            reject_download();
+                        });
+                    });
+                })
+                .catch(function (e) {
+                    notyf.dismissAll();
+                    notyf.open({
+                        type: "failure",
+                        message: "<b>Error</b>: " + e,
+                    });
+                });
+        } else {
+            var zip = new JSZip();
+            let promises = [];
+            for (let index = 0; index < pageData.illust.pageCount; index++) {
+                var element = pageData.illust.images[index];
+                let url = element.original;
+                let extension = url.substring(url.lastIndexOf("."));
+                let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ")_" + index + extension;
+                promises.push(
+                    content
                     .fetch(url, {
                         referrer: "https://www.pixiv.net/",
                     })
                     .then((response) => response.blob())
                     .then((blob) => {
-                        return new Promise(function (resolve) {
+                        return new Promise(function (resolve_zip) {
                             var reader = new FileReader();
                             reader.readAsDataURL(blob);
                             reader.onloadend = function () {
@@ -495,39 +535,41 @@ async function download(e) {
                                 zip.file(filename, trimmed, {
                                     base64: true,
                                 });
-                                resolve();
+                                resolve_zip();
                             };
                         });
                     }).catch(function (e) {
-                        notyf.dismiss(wait);
+                        notyf.dismissAll();
                         notyf.open({
                             type: "failure",
                             message: "<b>Error</b>: " + e,
                         });
                     })
-            );
-        }
-        Promise.all(promises).then(function () {
-            zip
-                .generateAsync({
-                    type: "blob",
-                })
-                .then(function (content) {
-                    notyf.dismiss(wait);
-                    saveAs(content, pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ").zip");
-                    notyf.open({
-                        type: "success",
-                        message: "<b>Success!</b>",
+                );
+            }
+            Promise.all(promises).then(function () {
+                zip
+                    .generateAsync({
+                        type: "blob",
+                    })
+                    .then(function (blob) {
+                        var filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ").zip";
+                        saveFile(blob, filename).then(function(){
+                            resolve_download();
+                        }).catch(function(error){
+                            console.log(error);
+                            reject_download();
+                        });
                     });
+            }).catch(function (e) {
+                notyf.dismissAll();
+                notyf.open({
+                    type: "failure",
+                    message: "<b>Error</b>: " + e,
                 });
-        }).catch(function (e) {
-            notyf.dismiss(wait);
-            notyf.open({
-                type: "failure",
-                message: "<b>Error</b>: " + e,
             });
-        });
-    }
+        }
+    })
 }
 
 function addIllusts() {
@@ -567,8 +609,7 @@ function addIllusts() {
 }
 
 function onImgError(event) {
-    browser.runtime.sendMessage(
-        {
+    browser.runtime.sendMessage({
             from: "imgError",
         },
         function (data) {
@@ -678,6 +719,7 @@ function addInfo() {
         )}</div>`;
     }
     //tags
+    console.log(pageData.illust.tags.tags);
     html += `<div id="tags">`;
     for (let tag of pageData.illust.tags.tags) {
         html += `#<a href="/search.php?s_mode=s_tag_full&word=${tag.tag}">${tag.tag}`;
@@ -793,8 +835,7 @@ function bookmark(e) {
                 Accept: "application/json",
                 "x-csrf-token": token,
             },
-            body:
-                '{"illust_id":"' + illustId + '","restrict":0,"comment":"","tags":[]}',
+            body: '{"illust_id":"' + illustId + '","restrict":0,"comment":"","tags":[]}',
         })
         //.then(r => r.json())
         .then(() => {
@@ -839,8 +880,7 @@ function downloadUgoira() {
     if (pageData.illust.illustType != 2) return;
     let loading = document.getElementById("loading");
     return new Promise((resolve) => {
-        browser.runtime.sendMessage(
-            {
+        browser.runtime.sendMessage({
                 from: "ugoira",
             },
             function () {
@@ -868,10 +908,10 @@ function downloadUgoira() {
                     })
                     .then(
                         (data) =>
-                            new Promise((r) => {
-                                pageData.ugoiraData.zipFile = data;
-                                extractUgoiraZip(r, data);
-                            })
+                        new Promise((r) => {
+                            pageData.ugoiraData.zipFile = data;
+                            extractUgoiraZip(r, data);
+                        })
                     )
                     .then(() => resolve());
             }
@@ -896,12 +936,12 @@ function extractUgoiraZip(resolve, data) {
                             });
                             if (i == entries.length - 1) resolve();
                         },
-                        function (current, total) { }
+                        function (current, total) {}
                     );
                 }
             });
         },
-        function (err) { }
+        function (err) {}
     );
 }
 
