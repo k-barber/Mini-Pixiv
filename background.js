@@ -15,19 +15,32 @@ async function getSelectedTab() {
     return current_tab;
 }
 
+async function getPixivIllustTabs(){
+    return await browser.tabs.query({
+        // currentWindow: true,
+        discarded: false,
+        url: "https://www.pixiv.net/en/artworks/*"       
+    })
+}
+
 var promiseResolve, promiseReject;
 
 async function downloadAllPixivPages() {
-    var current_tab = await getSelectedTab();
-    while (current_tab.url.match(pix_regex)) {
-        downloadPixivPage();
-        var promise = new Promise(function (resolve, reject) {
-            promiseResolve = resolve;
-            promiseReject = reject;
-        });
-        await promise;
-        current_tab = await getSelectedTab();
+    var pixiv_tabs = await getPixivIllustTabs();
+    console.log(pixiv_tabs);
+    for (let index = 0; index < pixiv_tabs.length; index++) {
+        const tab = pixiv_tabs[index];
+        console.log(tab);
+        browser.tabs.sendMessage(
+            tab.id,
+            "download"
+        ).then(function(){
+            browser.tabs.remove(tab.id);
+        }).catch(function(error){
+            console.log(error);
+        })
     }
+    console.log("END");
 }
 
 async function downloadPixivPage() {
@@ -38,18 +51,6 @@ async function downloadPixivPage() {
         "download"
     )
 }
-
-browser.runtime.onMessage.addListener(async function (message) {
-    console.log(message);
-    var current_tab = await getSelectedTab();
-    console.log(current_tab);
-    if (message === "success") {
-        browser.tabs.remove(current_tab.id);
-        promiseResolve();
-    } else {
-        promiseReject();
-    }
-});
 
 browser.browserAction.onClicked.addListener(downloadAllPixivPages)
 

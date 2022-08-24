@@ -437,7 +437,7 @@ function saveFile(blob, filename) {
             notyf.dismissAll()
             notyf.open({
                 type: "failure",
-                message: "<b>Error</b>: " + e,
+                message: "<b>Error</b>: " + error,
             });
             reject();
         });
@@ -448,11 +448,7 @@ browser.runtime.onMessage.addListener(function(message){
     console.log(message);
     if(message === "download"){
         bookmark(new Event("ignorable"));
-        download(new Event("ignorable")).then(function(){
-            browser.runtime.sendMessage("success")
-        }).catch(function(){
-            browser.runtime.sendMessage("fail")
-        })
+        return download(new Event("ignorable"));
     }
 });
 
@@ -466,7 +462,7 @@ async function download(e) {
         if (pageData.illust.illustType === 2) {
             try {
                 notyf.dismissAll();
-                let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ").zip";
+                let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ")";
                 saveFile(pageData.ugoiraData.zipFile, filename).then(function(){
                     resolve_download();
                 }).catch(function(error){
@@ -553,7 +549,7 @@ async function download(e) {
                         type: "blob",
                     })
                     .then(function (blob) {
-                        var filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ").zip";
+                        var filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ")";
                         saveFile(blob, filename).then(function(){
                             resolve_download();
                         }).catch(function(error){
