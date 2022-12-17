@@ -289,10 +289,11 @@ function addProfile() {
     `;
     //follow
     let follow = '';
+    console.log(pageData.user);
     if (pageData.user.isFollowed == false) {
         follow = `<button id="follow" rel="minip">${chrome.i18n.getMessage('buttonFollow')}</button>`;
     } else {
-        follow = `<button id="follow" rel="minip" class="inactive">${chrome.i18n.getMessage('buttonFollowing')}</button>`;
+        follow = `<button id="follow" rel="minip">${chrome.i18n.getMessage('buttonFollowing')}</button>`;
     }
     //html
     let avatarImg = pageData.user.imageBig;
@@ -310,38 +311,31 @@ function addProfile() {
     profile.innerHTML = DOMPurify.sanitize(html);
     if (pageData.user.isFollowed == false) {
         document.getElementById('follow').addEventListener('click', followUser);
+    } else {
+        document.getElementById('follow').addEventListener('click', unfollowUser);
     }
 }
 
 function followUser(e) {
-    console.log("click!");
+    console.log(1);
     e.preventDefault();
-    console.log("1");
-    let target = document.getElementById('follow');
-    console.log("2");
-    target.removeEventListener('click', followUser);
-    console.log("3");
     if (pageData.token == null) return;
-    console.log("4");
+    let target = document.getElementById('follow');
+    target.removeEventListener('click', followUser);
     let token = DOMPurify.sanitize(pageData.token);
-    console.log("5");
     let userId = parseInt(pageData.user.userId);
-    console.log("6");
     //desktop
-    let url = '/bookmark_add.php';
-    console.log("7");
+    let url = "/bookmark_add.php";
     let headers = {
         'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
         'Accept': 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
         'x-csrf-token': token
     };
-    console.log("8");
     let body = `mode=add&type=user&user_id=${userId}&tag=&restrict=0&format=json`;
     //mobile
-    console.log("9");
-    if (device == 'mobile') {
-        url = '/touch/ajax_api/ajax_api.php';
+    if (device == "mobile") {
+        url = "/touch/ajax_api/ajax_api.php";
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
             'Accept': 'application/json, text/javascript, */*; q=0.01',
@@ -349,8 +343,48 @@ function followUser(e) {
         };
         body = `mode=add_bookmark_user&restrict=0&tt=${token}&user_id=${userId}`;
     }
-    console.log("10");
-    content.fetch(url, {
+    let p = content.fetch(url, {
+            method: "POST",
+            mode: "cors",
+            cache: "no-cache",
+            credentials: "same-origin",
+            redirect: "follow",
+            headers: headers,
+            body: body,
+        })
+        .then((r) => r.json())
+        .then(() => {
+            // target.className = 'inactive';
+            target.innerHTML = DOMPurify.sanitize(browser.i18n.getMessage('buttonFollowing'));
+            target.addEventListener('click', unfollowUser);
+            browser.runtime.sendMessage({
+                from: "follow",
+                userId: userId,
+            });
+        });
+}
+
+function unfollowUser(e) {
+    console.log(1);
+    e.preventDefault();
+    if (pageData.token == null) return;
+    console.log(2);
+    let target = document.getElementById('follow');
+    console.log(3);
+    target.removeEventListener('click', unfollowUser);
+    console.log(4);
+    let token = DOMPurify.sanitize(pageData.token);
+    console.log(5);
+    let userId = parseInt(pageData.user.userId);
+    console.log(6);
+    let headers = {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
+        'Accept': 'application/json',
+        'x-csrf-token': token
+    };
+    console.log(7);
+    let body = `mode=del&type=bookuser&id=${userId}`;
+    content.fetch('/rpc_group_setting.php', {
             method: "POST",
             mode: "cors",
             cache: "no-cache",
@@ -358,13 +392,15 @@ function followUser(e) {
             redirect: "follow",
             headers: headers,
             body: body
-        })
-        .then(r => r.json())
+        }).then((r) => r.json())
         .then(() => {
-            target.className = 'inactive';
-            target.innerHTML = DOMPurify.sanitize(chrome.i18n.getMessage('buttonFollowing'));
-            pageData.user.isFollowed = true;
+            console.log(8);
+            target.innerHTML = DOMPurify.sanitize(browser.i18n.getMessage("buttonFollow"));
+            console.log(9);
+            target.addEventListener('click', followUser);
+            console.log(10);
         });
+    console.log(11);
 }
 
 function addInfo() {
