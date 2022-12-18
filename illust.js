@@ -482,7 +482,6 @@ async function download(e) {
 
     downloading = new Promise((resolve_download, reject_download) => {
         function fail(error) {
-            reject_download();
             notyf.dismissAll();
             notyf.open({
                 type: "failure",
@@ -506,7 +505,6 @@ async function download(e) {
                 fail(error);
             }
         } else if (pageData.illust.pageCount === 1) {
-            reject_download();
             var notification = notyf.open({
                 type: "waiting",
                 message: "<b>Fetching illustration...</b>",
