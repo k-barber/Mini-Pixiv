@@ -487,6 +487,7 @@ async function download(e) {
                 type: "failure",
                 message: "<b>Error</b>: " + error,
             });
+            reject_download();
         }
         if (pageData.illust.illustType === 2) {
             notyf.open({
