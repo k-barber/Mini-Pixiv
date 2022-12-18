@@ -155,10 +155,10 @@ header a:visited {
     background: #b0b7c0;
     /* bg-darkgray */
     height: auto;
-    min-width: 200px;
+    /* min-width: 200px; */
     min-height: 200px;
     max-width: 1000px;
-    max-height: 750px;
+    /* max-height: 750px; */
 }
 
 #gallery.fitImages img {

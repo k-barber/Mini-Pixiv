@@ -34,8 +34,16 @@ async function downloadAllPixivPages() {
         browser.tabs.sendMessage(
             tab.id,
             "download"
-        ).then(function(){
-            browser.tabs.remove(tab.id);
+        ).then(function(result){
+            console.log(result);
+            if (result === "Success"){
+                browser.tabs.update(tab.id, {
+                    active: true
+                });
+                setTimeout(()=>{
+                    browser.tabs.remove(tab.id);
+                }, 2500);
+            }
         }).catch(function(error){
             console.log(error);
         })

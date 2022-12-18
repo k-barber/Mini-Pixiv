@@ -1,6 +1,8 @@
 const loaded_chunks = new Event("loaded_chunks");
 const loaded_recs = new Event("loaded_recs");
 
+var downloading = false;
+
 const notyf = new Notyf({
     position: {
         x: "left",
@@ -25,7 +27,7 @@ const notyf = new Notyf({
                 tagName: "i",
                 color: "white",
             },
-            duration: 5000,
+            duration: 0,
             dismissible: true,
         },
         {
@@ -82,20 +84,23 @@ function chunkArray(array, chunkSize) {
 function processPage() {
     return new Promise((resolve) => getAppData(resolve))
         .then(() => getIllustData())
-        .then(() => getNewerOlder())
+        // .then(() => getNewerOlder())
         .then(() => getUserData())
         .then(() => {
             addLayout();
             addAvatar();
             addGallery();
-            addIllusts();
+            preloadIllusts();
             addUserIllusts();
             addInfo();
             getRecommend();
         })
         .then(() => getUgoiraData())
         .then(() => downloadUgoira())
-        .then(() => addUgoira());
+        .then(() => addUgoira())
+        .then(() => {
+            console.log(pageData);
+        });
 }
 
 function getAppData(resolve) {
@@ -323,7 +328,7 @@ function addAvatar() {
             "buttonFollow"
         )}</button>`;
     } else {
-        follow = `<button id="follow" rel="minip" class="inactive">${browser.i18n.getMessage(
+        follow = `<button id="follow" rel="minip">${browser.i18n.getMessage(
             "buttonFollowing"
         )}</button>`;
     }
@@ -343,14 +348,16 @@ function addAvatar() {
     avatar.innerHTML = DOMPurify.sanitize(html);
     if (pageData.user.isFollowed == false) {
         document.getElementById("follow").addEventListener("click", followUser);
+    } else {
+        document.getElementById("follow").addEventListener("click", unfollowUser);
     }
 }
 
 function followUser(e) {
     e.preventDefault();
+    if (pageData.token == null) return;
     let target = document.getElementById('follow');
     target.removeEventListener('click', followUser);
-    if (pageData.token == null) return;
     let token = DOMPurify.sanitize(pageData.token);
     let userId = parseInt(pageData.user.userId);
     //desktop
@@ -383,8 +390,9 @@ function followUser(e) {
         })
         .then((r) => r.json())
         .then(() => {
-            target.className = 'inactive';
+            // target.className = 'inactive';
             target.innerHTML = DOMPurify.sanitize(browser.i18n.getMessage('buttonFollowing'));
+            target.addEventListener('click', unfollowUser);
             browser.runtime.sendMessage({
                 from: "follow",
                 userId: userId,
@@ -393,17 +401,31 @@ function followUser(e) {
 }
 
 function unfollowUser(e) {
-    //let p = content.fetch('/rpc_group_setting.php', {
-    //method: "POST",
-    //mode: "cors",
-    //cache: "no-cache",
-    //credentials: "same-origin",
-    //redirect: "follow",
-    //headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
-    //'Accept': 'application/json',
-    //'x-csrf-token': pageData.token },
-    //body: `mode=del&type=bookuser&id=${pageData.user.userId}`
-    //})
+    e.preventDefault();
+    if (pageData.token == null) return;
+    let target = document.getElementById('follow');
+    target.removeEventListener('click', unfollowUser);
+    let token = DOMPurify.sanitize(pageData.token);
+    let userId = parseInt(pageData.user.userId);
+    let headers = {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
+        'Accept': 'application/json',
+        'x-csrf-token': token
+    };
+    let body = `mode=del&type=bookuser&id=${userId}`;
+    content.fetch('/rpc_group_setting.php', {
+            method: "POST",
+            mode: "cors",
+            cache: "no-cache",
+            credentials: "same-origin",
+            redirect: "follow",
+            headers: headers,
+            body: body
+        }).then((r) => r.json())
+        .then(() => {
+            target.innerHTML = DOMPurify.sanitize(browser.i18n.getMessage("buttonFollow"));
+            target.addEventListener('click', followUser);
+        });
 }
 
 function addGallery() {
@@ -427,56 +449,68 @@ function saveFile(blob, filename) {
             },
             body: formData
         }).then((data) => {
-            notyf.dismissAll()
-            notyf.open({
-                type: "success",
-                message: "<b>Success!</b>",
-            });
             resolve();
         }).catch((error) => {
-            notyf.dismissAll()
-            notyf.open({
-                type: "failure",
-                message: "<b>Error</b>: " + error,
-            });
             reject();
         });
     });
 }
 
-browser.runtime.onMessage.addListener(function(message){
+browser.runtime.onMessage.addListener(async function (message) {
     console.log(message);
-    if(message === "download"){
+    if (message === "download") {
         bookmark(new Event("ignorable"));
-        return download(new Event("ignorable"));
+        var x = "Failure"
+        await download(new Event("ignorable")).then(()=>{
+            x = "Success";
+        }, ()=>{
+            x = "Failure";
+        });
+        return x;
     }
 });
 
 async function download(e) {
     e.preventDefault();
-    notyf.open({
-        type: "waiting",
-        message: "<b>Downloading...</b>",
-    });
-    return new Promise((resolve_download, reject_download) =>{
+    if (downloading) {
+        notyf.open({
+            type: "failure",
+            message: "<b>Already downloading!</b>",
+        });
+        return downloading;
+    }
+
+    downloading = new Promise((resolve_download, reject_download) => {
+        function fail(error) {
+            reject_download();
+            notyf.dismissAll();
+            notyf.open({
+                type: "failure",
+                message: "<b>Error</b>: " + error,
+            });
+        }
         if (pageData.illust.illustType === 2) {
+            notyf.open({
+                type: "waiting",
+                message: "<b>Downloading...</b>",
+            });
             try {
                 notyf.dismissAll();
                 let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ")";
-                saveFile(pageData.ugoiraData.zipFile, filename).then(function(){
+                saveFile(pageData.ugoiraData.zipFile, filename).then(function () {
                     resolve_download();
-                }).catch(function(error){
-                    console.log(error);
-                    reject_download();
+                }).catch(function (error) {
+                    fail(error);
                 });
             } catch (error) {
-                notyf.dismissAll();
-                notyf.open({
-                    type: "failure",
-                    message: "<b>Error</b>: " + error,
-                });
+                fail(error);
             }
         } else if (pageData.illust.pageCount === 1) {
+            reject_download();
+            var notification = notyf.open({
+                type: "waiting",
+                message: "<b>Fetching illustration...</b>",
+            });
             let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ")_0";
             filename = filename
                 .trim()
@@ -492,80 +526,157 @@ async function download(e) {
                 })
                 .then(function (resp) {
                     resp.blob().then(function (blob) {
-                        saveFile(blob, filename).then(function(){
+                        saveFile(blob, filename).then(function () {
+                            notyf.dismiss(notification);
                             resolve_download();
-                        }).catch(function(error){
-                            console.log(error);
-                            reject_download();
+                        }).catch(function (error) {
+                            fail(error);
                         });
-                    });
+                    }).catch(function (error) {
+                        fail(error);
+                    });;
                 })
                 .catch(function (e) {
-                    notyf.dismissAll();
-                    notyf.open({
-                        type: "failure",
-                        message: "<b>Error</b>: " + e,
-                    });
+                    fail(error);
                 });
         } else {
-            var zip = new JSZip();
-            let promises = [];
-            for (let index = 0; index < pageData.illust.pageCount; index++) {
-                var element = pageData.illust.images[index];
-                let url = element.original;
-                let extension = url.substring(url.lastIndexOf("."));
-                let filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ")_" + index + extension;
-                promises.push(
-                    content
-                    .fetch(url, {
+            var promises = [];
+
+            var offset = Math.round(Math.sqrt(pageData.illust.pageCount));
+
+            const prefix = (pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ")").replace(/[/\\?%*:|"<>]/g, '-')
+
+            var zips = [];
+
+            function serial_down(index, offset, list) {
+                var printable_index = index + 1;
+                console.log("Zip index: " + Math.min(Math.floor(index/offset), zips.length - 1));
+                const zip = zips[Math.min(Math.floor(index/offset), zips.length - 1)];
+                console.log("Downloading: " + printable_index);
+                if (index >= list.length) {
+                    return new Promise(function (resolve) {
+                        console.log("resolved: " + printable_index);
+                        resolve();
+                    });
+                }
+
+                const element = list[index];
+                const url = element.original;
+                const extension = url.substring(url.lastIndexOf("."));
+                const filename = prefix + "_" + index + extension;
+
+                var notification = notyf.open({
+                    type: "waiting",
+                    message: "<b>Fetching image " + printable_index + "</b>",
+                });
+
+                return content.fetch(url, {
                         referrer: "https://www.pixiv.net/",
                     })
                     .then((response) => response.blob())
                     .then((blob) => {
+                        console.log("fetched");
                         return new Promise(function (resolve_zip) {
                             var reader = new FileReader();
                             reader.readAsDataURL(blob);
                             reader.onloadend = function () {
+                                console.log("loaded")
                                 var base64data = reader.result;
                                 var trimmed = base64data.substr(base64data.indexOf(",") + 1);
+                                console.log(zip);
                                 zip.file(filename, trimmed, {
                                     base64: true,
                                 });
-                                resolve_zip();
+                                console.log("added to zip")
+                                notyf.dismiss(notification);
+                                return serial_down(index + offset, offset, list).then(() => {
+                                    console.log("resolved: " + printable_index);
+                                    resolve_zip();
+                                }).catch(function (e) {
+                                    fail(error);
+                                });
                             };
                         });
                     }).catch(function (e) {
-                        notyf.dismissAll();
-                        notyf.open({
-                            type: "failure",
-                            message: "<b>Error</b>: " + e,
+                        fail(error);
+                    });
+            }
+            
+            for (let index = 0; index < offset; index++) {
+                zips[index] = new JSZip();
+                const zip = zips[index];
+                const printable = index + 1;
+                promises.push(
+                    serial_down(index, offset, pageData.illust.images).then(() => {
+                        var notif_generating = notyf.open({
+                            type: "waiting",
+                            message: `<b>Generating zip (pt ${printable}) </b>`,
                         });
+                        return zip
+                            .generateAsync({
+                                type: "blob",
+                            })
+                            .then(function (blob) {
+                                notyf.dismiss(notif_generating);
+                                var notif_downloading = notyf.open({
+                                    type: "waiting",
+                                    message: `<b>Downloading zip (pt ${printable}) </b>`,
+                                });
+                                var filename = prefix + " pt" + printable;
+                                return saveFile(blob, filename).then(function () {
+                                    console.log("Downloaded!");
+                                    notyf.open({
+                                        type: "success",
+                                        message: `<b>Downloaded zip (pt. ${printable}) </b>`,
+                                        duration: 0
+                                    });
+                                    notyf.dismiss(notif_downloading);
+                                }).catch(function (error) {
+                                    fail(error);
+                                });
+                            }).catch(function (error) {
+                                fail(error);
+                            });
                     })
                 );
             }
             Promise.all(promises).then(function () {
-                zip
-                    .generateAsync({
-                        type: "blob",
-                    })
-                    .then(function (blob) {
-                        var filename = pageData.user.name + "(" + pageData.user.userId + ")_" + pageData.illust.title + "(" + pageData.illust.id + ")";
-                        saveFile(blob, filename).then(function(){
-                            resolve_download();
-                        }).catch(function(error){
-                            console.log(error);
-                            reject_download();
-                        });
-                    });
+                resolve_download();
             }).catch(function (e) {
-                notyf.dismissAll();
-                notyf.open({
-                    type: "failure",
-                    message: "<b>Error</b>: " + e,
-                });
+                fail(error);
             });
         }
-    })
+    }).then(() => {
+        notyf.open({
+            type: "success",
+            message: "<b>Fully downloaded!</b>",
+        });
+    }).catch(() => {
+        notyf.open({
+            type: "failure",
+            message: "<b>Failed to download!</b>",
+        });
+        reject_download();
+    }).finally(() => {
+        downloading = false;
+    });
+
+    return downloading;
+}
+
+function preloadIllusts() {
+    if (pageData.illust.aiType == 2) {
+        let gallery = document.getElementById('gallery');
+        gallery.innerHTML = DOMPurify.sanitize(`
+            <div>
+                <p>This piece is AI generated, show anyway?</p>
+                <button id="show_ai">Show</button>
+            </div>
+        `);
+        document.getElementById("show_ai").addEventListener("click", addIllusts);
+    } else {
+        addIllusts();
+    }
 }
 
 function addIllusts() {
@@ -586,6 +697,7 @@ function addIllusts() {
     }
     let html = '';
     let i = 0;
+    html += `<h3>AI Score: ${pageData.illust.aiType}</h3>`
     for (let item of images) {
         let src = item.master;
         //let src = (app.opts.loadMaster ? item.master : item.original);

@@ -34,17 +34,21 @@ const pixiv_dict = {
     "sonobisukudo-ruhakoiwosuru" : "Bisque",
     "bureiburu-" : "Blazblue",
     "bleach" : "Bleach",
-    "Blend S" : "Blend_S",
-    "hitoriboxtsuchinomarumaruseikatsu" : "Bocchi",
+    "burenndoesu" : "Blend_S",
+    "hitoriboxtsuchinomarumaruseikatsu" : "Hitori_Bocchi",
+    "boxtsuchizarokku" : "Bocchi_the_Rock",
     "itainohaiyananodebougyorixyokunikyokufurishitaitoomoimasu" : "Bofuri",
-    "よふかしのうた" : "Call_of_the_Night",
+    "yofukashinouta" : "Call_of_the_Night",
     "shinnchouyuusha" : "Cautious_Hero",
     "hatarakusaibouburakku" : "Cells_At_Work",
     "hatarakusaibou" : "Cells_At_Work",
     "Centaur's Worries" : "Centaur_No_Nayami",
     "chennso-mann" : "Chainsaw_Man",
     "chuunibyoudemokoigashitai" : "Chuunibyou",
-    "Combatants Will" : "Combatants",
+    "senntouinnhakennshimasu" : "Combatants",
+    "Cult_of_the_lamb": "Cult_of_the_Lamb",
+    "cultofthelamb" : "Cult_of_the_Lamb",
+    "saiba-pannkuejjirannna-zu" : "Cyberpunk_Edgerunners",
     "bokunokokoronoyabaiyatsu" : "Dangers_In_My_Heart",
     "Death Parade" : "Death_Parade",
     "demichannhakataritai" : "Demi_Chan",
@@ -101,9 +105,10 @@ const pixiv_dict = {
     "kunoichitsubakinomunenouchi" : "Kunoichi_Tsubaki",
     // "LARGE_PLACEHOLDER_TEXT" : "LOGH",
     "ritoruwixtsuchiakademia" : "LWA",
-    // "League.?of.?Legends" : "League_of_Legends",
+    "League_of_Legends" : "League_of_Legends",
     "zerudanodennsetsu" : "Legend_of_Zelda",
     // "LARGE_PLACEHOLDER_TEXT" : "Lovecraft Girls",
+    "rikorisurikoiru": "Lycoris_Recoil",
     // "LARGE_PLACEHOLDER_TEXT" : "MLP",
     "machikadomazoku" : "Machikado_Mazoku",
     "meidoinnabisu" : "Made_in_Abyss",
@@ -140,12 +145,14 @@ const pixiv_dict = {
     "huumatsunowarukyu-re" : "Record_of_Ragnarok",
     "rikeigakoiniochitanodeshoumeishitemita" : "RikeKoi",
     "kaifukujutsushinoyarinaoshi" : "Redo_of_Healer",
+    "ruridoragonn" : "Ruri_Dragon",
     // "LARGE_PLACEHOLDER_TEXT" : "Sailor_Moon",
     "刺客伍六七" : "Scissor_Seven",
     "sewayakikitsunenosennkosann" : "Senko_San",
     "nanatsunotaizai" : "Seven_Deadly_Sins",
     "tatenoyuushanonariagari" : "Shield_Hero",
     "kawaiidakejanaishikimorisann" : "Shikimori",
+    "shado-hausu" : "Shadows_House",
     "shimonetatoiugainenngasonnzaishinaitaikutsunasekai" : "Shimoneta",
     "shinigamiboxtsuchanntokuromeido" : "Shinigami_Bochann",
     // "LARGE_PLACEHOLDER_TEXT" : "Sirius",
@@ -172,12 +179,15 @@ const pixiv_dict = {
     // "LARGE_PLACEHOLDER_TEXT" : "Wander_Over_Yonder",
     "majonotabitabi" : "Wandering_Witch",
     "watashigamotenainohadoukanngaetemoomaeragawarui" : "Wataten",
+    "watashinitennshigamaiorita" : "Wataten",
     // "LARGE_PLACEHOLDER_TEXT" : "Wendys",
     "atorieobuwixtsuchihatto" : "Witch_Hat",
     "wotakunikoihamuzukashii" : "Wotakoi",
+    "kumichoumusumetosewagakari": "Yakusas_Guide",
     "youjosennki" : "Youjo_Senki",
     // "LARGE_PLACEHOLDER_TEXT" : "Your_Lie_in_April",
     // "LARGE_PLACEHOLDER_TEXT" : "Yozakura_Family",
+    "yotsubato" : "Yotsuba",
     "zonnbiranndosaga" : "ZLS",
     "pokemonn" : "Pokemon"
 }
@@ -203,6 +213,9 @@ app.post('/api/download', (req, res)=>{
             // console.log(tag);
             if (pixiv_dict[tag.romaji]){
                 save_locations.push(pixiv_dict[tag.romaji]);
+            };
+            if (pixiv_dict[tag.tag]){
+                save_locations.push(pixiv_dict[tag.tag]);
             };
             if (tag.tag === "R-18"){
                 nsfw = true;
@@ -238,11 +251,12 @@ app.post('/api/download', (req, res)=>{
         } else {
             save_locations.forEach(location => {
                 let dest = newpath + location + "/";
-                if (!fs.existsSync(newpath)){
-                    fs.mkdirSync(newpath, { recursive: true });
+                if (!fs.existsSync(dest)){
+                    fs.mkdirSync(dest, { recursive: true });
                 }
                 dest += sanitize(files.fileupload.originalFilename) + "." + extension;
                 fs.copyFileSync(oldpath, dest);
+                console.log(dest);
             });
             res.send("File uploaded");
             res.end();
