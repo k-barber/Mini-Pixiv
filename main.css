@@ -433,7 +433,7 @@ a:visited img {
     font-size: 35px;
 }
 
-#list .r18 {
+#list .r18, #list .r18G {
     left: 0px;
     text-align: center;
     right: 125px;
@@ -449,6 +449,11 @@ a:visited img {
     font-weight: 700;
     width: 40px;
     font-style: normal;
+}
+
+.r18G {
+    background-color: rgb(134, 82, 23) !important;
+    border: solid 1px white;
 }
 
 #list .ugoira {

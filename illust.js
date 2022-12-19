@@ -1168,7 +1168,7 @@ function makeRecommendHtml(illusts) {
         if (app.opts.useCdn && app.opts.cdnUrl) illustUrl = illustUrl.replace('https://i.pximg.net', app.opts.cdnUrl);
         let count = (illust.pageCount > 1 ? `<i class="count">${parseInt(illust.pageCount)}</i>` : '');
         count = (illust.illustType == 2 ? `<i class="ugoira far fa-play-circle"></i>` : count);
-        let nsfw = (illust.xRestrict == 1 ? `<i class="r18">R-18</i>` : '');
+        let nsfw = (illust.xRestrict >= 1 ? `<i class="r18${illust.xRestrict == 2 ? "G" : ""}">R-18${illust.xRestrict == 2 ? "G" : ""}</i>` : '');
         let bookmarked = (illust.bookmarkData === null ? '' : `<i class="bookmarked fas fa-heart"></i>`);
         html += `
             <li id="${"ill-" + parseInt(illust.id)}">

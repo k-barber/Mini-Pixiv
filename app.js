@@ -217,7 +217,7 @@ app.post('/api/download', (req, res)=>{
             if (pixiv_dict[tag.tag]){
                 save_locations.push(pixiv_dict[tag.tag]);
             };
-            if (tag.tag === "R-18"){
+            if (tag.tag === "R-18" || tag.tag === "R-18G"){
                 nsfw = true;
             }
         })
