@@ -547,12 +547,10 @@ async function download(e) {
 
             var zips = [];
 
-            function serial_down(index, offset, list) {
+            function serial_down(index, end, zip, list) {
                 var printable_index = index + 1;
-                console.log("Zip index: " + Math.min(Math.floor(index/offset), zips.length - 1));
-                const zip = zips[Math.min(Math.floor(index/offset), zips.length - 1)];
                 console.log("Downloading: " + printable_index);
-                if (index >= list.length) {
+                if (index >= list.length || index >= end) {
                     return new Promise(function (resolve) {
                         console.log("resolved: " + printable_index);
                         resolve();
@@ -588,7 +586,7 @@ async function download(e) {
                                 });
                                 console.log("added to zip")
                                 notyf.dismiss(notification);
-                                return serial_down(index + offset, offset, list).then(() => {
+                                return serial_down(index + 1, end, zip, list).then(() => {
                                     console.log("resolved: " + printable_index);
                                     resolve_zip();
                                 }).catch(function (e) {
@@ -606,7 +604,7 @@ async function download(e) {
                 const zip = zips[index];
                 const printable = index + 1;
                 promises.push(
-                    serial_down(index, offset, pageData.illust.images).then(() => {
+                    serial_down(index * offset, printable * offset, zip, pageData.illust.images).then(() => {
                         var notif_generating = notyf.open({
                             type: "waiting",
                             message: `<b>Generating zip (pt ${printable}) </b>`,
