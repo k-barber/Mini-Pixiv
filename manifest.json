@@ -37,6 +37,9 @@
         ]
     },
     "content_scripts": [{
+        "matches": ["https://www.pixiv.net/en/users/*/bookmarks/artworks*"],
+        "js": ["purify.min.js", "bookmarks.js"]
+    },{
         "matches": ["https://www.pixiv.net/en/users/*"],
         "js": ["purify.min.js", "member.js"]
     }, {
