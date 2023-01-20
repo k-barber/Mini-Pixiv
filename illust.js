@@ -603,8 +603,14 @@ async function download(e) {
                 zips[index] = new JSZip();
                 const zip = zips[index];
                 const printable = index + 1;
+                var end;
+                if (pageData.illust.pageCount == 2){
+                    end = 2;
+                } else {
+                    end = printable * offset;
+                }
                 promises.push(
-                    serial_down(index * offset, printable * offset, zip, pageData.illust.images).then(() => {
+                    serial_down(index * offset, end, zip, pageData.illust.images).then(() => {
                         var notif_generating = notyf.open({
                             type: "waiting",
                             message: `<b>Generating zip (pt ${printable}) </b>`,
