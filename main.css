@@ -433,7 +433,8 @@ a:visited img {
     font-size: 35px;
 }
 
-#list .r18, #list .r18G {
+#list .r18,
+#list .r18G {
     left: 0px;
     text-align: center;
     right: 125px;
@@ -474,16 +475,90 @@ a:visited img {
     border: 2px blue solid;
 }
 
-#tag-list {
-    width: min-content;
-    margin: 20px;
-    padding: 0px;
-    overflow-y: scroll;
-    height: 300px;
-    padding: 20px;
+.form-group {
+    width: 100%;
 }
 
-#tag-search {
+.form-group div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.form-group p {
+    font-size: 13pt;
+    font-weight: 600;
+    margin: 0px 0px 10px;
+}
+
+.form-group label {
+    display: flex;
+    align-items: center;
+}
+
+#nsfw-selector input,
+#illust-selector input {
+    position: absolute;
+    width: 0px !important;
+    height: 0px !important;
+    opacity: 0;
+    margin: 0px !important;
+    border: 0px !important;
+    display: none;
+}
+
+#nsfw-selector span,
+#illust-selector span {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    border-radius: 10px;
+    padding: 2em;
+    border: solid gray 1px;
+    cursor: pointer;
+}
+
+#nsfw-selector label,
+#illust-selector label {
+    width: 30%;
+}
+
+#nsfw-selector input:checked+span,
+#illust-selector input:checked+span {
+    background-color: lightgreen;
+}
+
+#pageCount input,
+#createDate input,
+#updateDate input {
+    width: 75%;
+}
+
+.form-group label {
+    justify-content: space-between;
+    width: 40%;
+}
+
+#filter-buttons {
+    display: flex;
+    justify-content: space-evenly;
+}
+
+#filter-button, #clear-button {
+    padding: 1em 2em;
+}
+
+#tag-list {
+    width: min-content;
+    margin: 1em 0px 0em;
+    overflow-y: scroll;
+    height: 60vh;
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+#tag-search-box {
     margin: 20px 20px auto;
     width: calc(100% - 40px);
     box-sizing: border-box;
@@ -491,40 +566,46 @@ a:visited img {
 
 
 #tag-list .prof-tag {
-    margin: 10px 0px;
+    margin: 0.5em;
+    padding: 0.5em;
 }
 
 /* The Modal (background) */
-#tag-modal {
+#tag-modal,
+#filter-modal {
     display: none;
-    /* Hidden by default */
     position: fixed;
-    /* Stay in place */
     z-index: 10 !important;
-    /* Sit on top */
     padding-top: 100px;
-    /* Location of the box */
     left: 0;
     top: 0;
     width: 100%;
-    /* Full width */
     height: 100%;
-    /* Full height */
     overflow: auto;
-    /* Enable scroll if needed */
     background-color: rgb(0, 0, 0);
-    /* Fallback color */
     background-color: rgba(0, 0, 0, 0.4);
-    /* Black w/ opacity */
 }
 
+#filter-modal-form {
+    min-width: 50vw;
+    min-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 2em;
+}
+
+
+
 /* Modal Content */
-#modal-content {
+#tag_modal-content,
+#filter_modal-content {
     position: relative;
     background-color: #fefefe;
     margin: auto;
     padding: 0;
-    border: 1px solid #888;
+    /* border: 1px solid #888; */
     width: min-content !important;
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
     -webkit-animation-name: animatetop;
@@ -532,6 +613,18 @@ a:visited img {
     animation-name: animatetop;
     animation-duration: 0.4s;
     overflow-y: hidden;
+    border-radius: 1em;
+    cursor: default;
+}
+
+.prof-tag:hover {
+    -webkit-filter: brightness(50%) saturate(2000%);
+    -webkit-transition: all 0.25s;
+    -moz-transition: all 0.25s;
+    -o-transition: all 0.25;
+    -ms-transition: all 0.25s;
+    transition: all 0.25s;
+    box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.25);
 }
 
 /* Add Animation */
@@ -736,7 +829,7 @@ a:visited img {
 
 #prof-tags {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
     grid-gap: 10px;
 }
 
@@ -759,7 +852,8 @@ a:visited img {
     margin-bottom: 20px;
 }
 
-#tag-filter {
+#tag-filter,
+#tag-search {
     width: 100px;
     display: flex;
     justify-content: space-evenly;
@@ -768,9 +862,12 @@ a:visited img {
     border: 2px solid;
     border-radius: 20px;
     cursor: pointer;
+    padding: 1em;
+    margin: 1em;
 }
 
-#tag-filter i {
+#tag-filter i,
+#tag-search i {
     font-size: 40px;
 }
 

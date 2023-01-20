@@ -12,7 +12,7 @@ let regex_matches = document.location.href.match(/users\/(\d+)(?:\/artworks\/(.*
 let userId = parseInt(regex_matches[1]);
 
 let pageFromUrl = new URLSearchParams(document.location.search).get('p');
-let page = (pageFromUrl == undefined ? 1 : parseInt(pageFromUrl));
+let page = (pageFromUrl ? parseInt(pageFromUrl) : 1 );
 var tagFromUrl = new URLSearchParams(document.location.search).get('tag');
 
 var current_tag = tagFromUrl
@@ -36,6 +36,7 @@ let pageData = {
     }
 };
 let tag_illustrations = {};
+let filtered_illustrations = {};
 
 function decode(html) {
     var txt = document.createElement("textarea");
@@ -50,7 +51,7 @@ function getTags() {
             const page = pageData.bookmarks[key];
             page.forEach(illustration => {
                 illustration.tags.forEach(tag => {
-                    if (tags_dict[tag]){
+                    if (tags_dict[tag]) {
                         tags_dict[tag]["cnt"] += 1;
                     } else {
                         tags_dict[tag] = {
@@ -97,10 +98,12 @@ function other_tag_click(e) {
     tag_div.classList.add('current_tag');
     tag_div.onclick = current_tag_click;
 
-    var newurl = new URL(window.location.protocol + "//"
-        + window.location.host
-        + "/en/users/" + userId
-        + "/bookmarks/artworks");
+    var newurl = new URL(window.location.protocol + "//" +
+        window.location.host +
+        "/en/users/" + userId +
+        "/bookmarks/artworks");
+    newurl.searchParams.append("tag", tag_text)
+    newurl.searchParams.append("p", "1")
 
     window.history.replaceState({
         path: newurl.href
@@ -115,7 +118,17 @@ function current_tag_click(e) {
     addPagination(1, pageData.bookmarks)
     current_tag = null;
     tag_div.classList.remove('current_tag')
-    tag_div.onclick = other_tag_click
+    tag_div.onclick = other_tag_click;
+
+    var newurl = new URL(window.location.protocol + "//" +
+        window.location.host +
+        "/en/users/" + userId +
+        "/bookmarks/artworks");
+    newurl.searchParams.append("p", "1")
+
+    window.history.replaceState({
+        path: newurl.href
+    }, '', newurl.href);
 };
 
 function addTags(active_tag = null) {
@@ -141,7 +154,7 @@ function addTags(active_tag = null) {
 
 
         tag_list.appendChild(tag_div)
-        if (i < 25) {
+        if (i < 16) {
             let clone = tag_div.cloneNode(true)
             if (tag_text == active_tag) {
                 clone.classList.add('current_tag')
@@ -163,7 +176,6 @@ function processPage() {
             addInfo();
             addList();
         })
-        .then(() => getIllustIds())
         .then(() => getBookmarks())
         .then(() => {
             if (tagFromUrl) {
@@ -176,8 +188,7 @@ function processPage() {
                 all_illusts_promise.then(() => {
                     addBookmarks(page, pageData.bookmarks);
                     console.log(pageData.bookmarks);
-                    localStorage.setItem(userId + "_illusts", JSON.stringify(pageData.bookmarks));
-                    localStorage.setItem(userId + "_bookmarks", JSON.stringify(pageData.bookmarks));
+                    // localStorage.setItem(userId + "_bookmarks", JSON.stringify(pageData.bookmarks));
                     addPagination(page, pageData.bookmarks);
                 });
             }
@@ -293,8 +304,8 @@ function addProfile() {
     if (app.opts.useCdn && app.opts.cdnUrl) avatarImg = avatarImg.replace('https://i.pximg.net', app.opts.cdnUrl);
     let html = `
         <div id="avatar">
-            <div id="avatarPic"><a href="en/users/${parseInt(pageData.user.userId)}"><img src="${avatarImg}" /></a></div>
-            <div id="avatarUsername"><a href="en/users/${parseInt(pageData.user.userId)}">${pageData.user.name}</a></div>
+            <div id="avatarPic"><a href="https://www.pixiv.net/en/users/${parseInt(pageData.user.userId)}"><img src="${avatarImg}" /></a></div>
+            <div id="avatarUsername"><a href="https://www.pixiv.net/en/users/${parseInt(pageData.user.userId)}">${pageData.user.name}</a></div>
             <div id="avatarAction">
                 ${follow}
                 <a id="message" href="/messages.php?receiver_id=${parseInt(pageData.user.userId)}">${svgMessage}</a>
@@ -447,7 +458,7 @@ function addInfo() {
     }
     //bookmarks
     html += `<div id="bookmarks">
-        <a href="en/users/${parseInt(pageData.user.userId)}/bookmarks/artworks">${svgBookmark}&nbsp;${chrome.i18n.getMessage('menuBookmarks')}</a>
+        <a href="https://www.pixiv.net/en/users/${parseInt(pageData.user.userId)}/bookmarks/artworks">${svgBookmark}&nbsp;${chrome.i18n.getMessage('menuBookmarks')}</a>
     </div>`;
     //links
     if (pageData.user.social.length > 0 || pageData.user.webpage != null) {
@@ -514,6 +525,74 @@ function getTagIllusts(tag) {
     tag_illustrations[tag] = paginated_illusts
 }
 
+function getFilteredIllusts(filter) {
+    var illustrations;
+    if (current_tag){
+        illustrations = tag_illustrations[tag];
+    } else {
+        illustrations = pageData.bookmarks;
+    }
+
+    var paginated_illusts = {}
+    var page_index = 1;
+    paginated_illusts[page_index] = {};
+    var id_counter = 0;
+
+    for (const key in illustrations) {
+        if (Object.hasOwnProperty.call(illustrations, key)) {
+            const page = illustrations[key];
+            for (let i = 1; i < page.length; i++) {
+                const illust = page[i];
+                function add_illustration(){
+                    if (id_counter == 36) {
+                        page_index++;
+                        paginated_illusts[page_index] = {};
+                        id_counter = 0;
+                    }
+                    paginated_illusts[page_index][illust.id] = illust;
+                    id_counter++;
+                }
+
+                if (filter.illustTypes && !(filter.illustTypes.includes(illust.illustType))){
+                    continue;
+                }
+
+                if (filter.pageCountMin && (filter.pageCountMin > illust.pageCount)){
+                    continue;
+                }
+
+                if (filter.pageCountMax && (filter.pageCountMax < illust.pageCount)){
+                    continue;
+                }
+
+                if (filter.createDateMin && (filter.createDateMin > illust.createDate)){
+                    continue;
+                } 
+
+                if (filter.createDateMax && (filter.createDateMax < illust.createDate)){
+                    continue;
+                }
+
+                if (filter.updateDateMin && (filter.updateDateMin > illust.updateDate)){
+                    continue;
+                } 
+                
+                if (filter.updateDateMax && (filter.updateDateMax < illust.updateDate)){
+                    continue;
+                }
+
+                if (filter.xRestrict && !(filter.xRestrict.includes(illust.xRestrict))){
+                    continue;
+                }
+
+                add_illustration();
+            }
+        }
+    }
+
+    filtered_illustrations = paginated_illusts;
+}
+
 function addList() {
     let content = document.createElement('div');
     content.id = 'content';
@@ -530,20 +609,137 @@ function addList() {
     header.id = 'prof-header'
     let tags = document.createElement('div');
     tags.id = 'prof-tags'
-    let filter = document.createElement('div')
-    filter.id = 'tag-filter'
+    let search_container = document.createElement("div");
+    search_container.id = "search-container";
+
+    // Add Filter
+    let filter_button = document.createElement('div')
+    filter_button.id = 'tag-filter'
+    let filter_icon = document.createElement("i");
+    filter_icon.classList.add("fas", "fa-filter");
+    filter_button.appendChild(filter_icon);
+    filter_button.appendChild(document.createTextNode("Filter"));
+
+    // Add tag search
+    let search_button = document.createElement('div')
+    search_button.id = 'tag-search'
     let icon = document.createElement("i");
     icon.classList.add("fas", "fa-search");
-    filter.appendChild(icon);
-    filter.appendChild(document.createTextNode("Search tags"))
-    let modal = document.createElement('div')
-    modal.id = 'tag-modal'
-    let modal_content = document.createElement('div')
-    modal_content.id = 'modal-content'
+    search_button.appendChild(icon);
+    search_button.appendChild(document.createTextNode("Search tags"));
+
+    search_container.appendChild(search_button);
+    search_container.appendChild(filter_button);
+
+    // Filter Modal
+    let filter_modal = document.createElement('div')
+    filter_modal.id = 'filter-modal'
+    let filter_modal_content = document.createElement('div')
+    filter_modal_content.id = 'filter_modal-content'
+    filter_modal_content.innerHTML = `<form id="filter-modal-form">
+    <div class="form-group">
+        <p>Page Count</p>
+        <div id="pageCount">
+            <label>Min <input name="pageCountMin" type="number" min="0" step="1" /></label>
+            <label>Max <input name="pageCountMax" type="number" min="0" step="1" /></label>
+        </div>
+    </div>
+    <div class="form-group">
+        <p>Creation Date</p>
+        <div id="createDate">
+            <label>Min <input name="createDateMin" type="date" /></label>
+            <label>Max <input name="createDateMax" type="date" min="0" step="1" /></label>
+        </div>
+    </div>
+    <div class="form-group">
+        <p>Update Date</p>
+        <div id="updateDate">
+            <label>Min <input name="updateDateMin" type="date" /></label>
+            <label>Max <input name="updateDateMax" type="date" min="0" step="1" /></label>
+        </div>
+    </div>
+    <div class="form-group">
+        <p>NSFW</p>
+        <div id="nsfw-selector">
+            <label>
+                <input name="xRestrict" type="checkbox" value="0">
+                <span>SFW</span>
+            </label>
+            <label>
+                <input name="xRestrict" type="checkbox" value="1">
+                <span>R-18</span>
+            </label>
+            <label>
+                <input name="xRestrict" type="checkbox" value="2">
+                <span>R-18G</span>
+            </label>
+        </div>
+    </div>
+    <div class="form-group">
+        <p>Illustration Types</p>
+        <div id="illust-selector">
+            <label>
+                <input name="illustTypes" type="checkbox" value="0">
+                <span>Illustration</span>
+            </label>
+            <label>
+                <input name="illustTypes" type="checkbox" value="1">
+                <span>Manga</span>
+            </label>
+            <label>
+                <input name="illustTypes" type="checkbox" value="2">
+                <span>GIF</span>
+            </label>
+        </div>
+    </div>
+    <div class="form-group" id="filter-buttons">
+        <button id="filter-button">Filter</button>
+        <button id="clear-button">Clear Filters</button>
+    </div>
+</div>`;
+    filter_modal.appendChild(filter_modal_content)
+    filter_button.appendChild(filter_modal);
+    filter_button.onclick = function () {
+        filter_modal.style.display = "block"
+    }
+
+    function handleSubmit(e){
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        var formProps = Object.fromEntries(formData);
+
+        if (formProps.xRestrict){
+            let checkboxes= document.querySelectorAll('input[name="xRestrict"]:checked');
+            formProps.xRestrict = [];
+            checkboxes.forEach((checkbox) => {
+                formProps.xRestrict.push(checkbox.value);
+            });
+        }
+
+        if (formProps.illustTypes){
+            let checkboxes= document.querySelectorAll('input[name="illustTypes"]:checked');
+            formProps.illustTypes = [];
+            checkboxes.forEach((checkbox) => {
+                formProps.illustTypes.push(checkbox.value);
+            });
+        }
+
+        console.log(formProps);
+
+        getFilteredIllusts(formProps);
+        addBookmarks(1, filtered_illustrations);
+        addPagination(1, filtered_illustrations);
+    }
+
+    // Tag Modal
+    let tag_modal = document.createElement('div')
+    tag_modal.id = 'tag-modal'
+    let tag_modal_content = document.createElement('div')
+    tag_modal_content.id = 'tag_modal-content'
     let tag_list = document.createElement('ul')
     tag_list.id = 'tag-list';
     let search = document.createElement('input')
-    search.id = 'tag-search'
+    search.id = 'tag-search-box'
     search.placeholder = "Search for tags...";
     search.onkeyup = function () {
         let query = search.value.toUpperCase()
@@ -563,62 +759,62 @@ function addList() {
             }
         }
     }
-    modal_content.appendChild(search)
-    modal_content.appendChild(tag_list)
-    modal.appendChild(modal_content)
-    filter.appendChild(modal)
+    tag_modal_content.appendChild(search)
+    tag_modal_content.appendChild(tag_list)
+    tag_modal.appendChild(tag_modal_content)
+    search_button.appendChild(tag_modal);
+    search_button.onclick = function () {
+        tag_modal.style.display = "block"
+    }
+
+    window.onclick = function (event) {
+        if (event.target == tag_modal) {
+            tag_modal.style.display = "none";
+        } else if (event.target == filter_modal) {
+            filter_modal.style.display = "none";
+        }
+    }
+
+
     header.appendChild(tags)
-    header.appendChild(filter)
+    header.appendChild(search_container)
     list.prepend(header)
     content.appendChild(header)
     content.appendChild(page1)
     content.appendChild(list)
     content.appendChild(page2)
-    filter.onclick = function () {
-        modal.style.display = "block"
-    }
+    
+    const form = document.getElementById("filter-modal-form");
+    form.addEventListener("submit", handleSubmit);
 
-    window.onclick = function (event) {
-        if (event.target == modal) {
-            modal.style.display = "none";
-        }
-    }
-}
-
-function getIllustIds() {
-    //bg cache
-    if (Object.keys(pageData.illustIds).length > 0) return;
-    //fetch
-    return content.fetch('/ajax/user/' + userId + '/profile/all', {
-            credentials: 'same-origin'
-        })
-        .then(r => r.json())
-        .then(r => r.body)
-        .then(data => {
-            pageData.illustIds = Object.assign(data.illusts, data.manga);
-            pageData.totalIllusts = Object.keys(pageData.illustIds).length;
-            pageData.totalIllustPages = Math.ceil(pageData.totalIllusts / pageData.bookmarksPerPage);
-            pageData.fanbox = data.pickup.filter(obj => obj.type === "fanbox")[0] || null;
-        });
+    document.getElementById("clear-button").addEventListener("click", function(e){
+        e.preventDefault();
+        console.log("CLEAR!");
+        form.reset();
+        handleSubmit();
+    })
 }
 
 function getBookmarks() {
     //bg cache
-    if (page in pageData.bookmarks){
-        all_illusts_promise = Promise.resolve(true); 
+    if (page in pageData.bookmarks) {
+        all_illusts_promise = Promise.resolve(true);
         return Promise.resolve(true);
     }
 
-    //fetch
-    if (localStorage.getItem(userId + "_bookmarks")) {
-        console.log("From storage!");
-        pageData.bookmarks = JSON.parse(localStorage.getItem(userId + "_bookmarks"));
-        all_illusts_promise = Promise.resolve(true); 
-        return Promise.resolve(true);
-    }
+    // //fetch
+    // if (localStorage.getItem(userId + "_bookmarks")) {
+    //     console.log("From storage!");
+    //     pageData.bookmarks = JSON.parse(localStorage.getItem(userId + "_bookmarks"));
+    //     all_illusts_promise = Promise.resolve(true);
+    //     return Promise.resolve(true);
+    // }
 
-    let offset = (page - 1) * pageData.bookmarksPerPage;
-    let params = '?tag=&offset=' + offset + '&limit=' + pageData.bookmarksPerPage + '&rest=show';
+    console.log(page)
+    console.log(pageData)
+    let offset = (page - 1) * pageData.illustsPerPage;
+    console.log(offset)
+    let params = '?tag=&offset=' + offset + '&limit=' + pageData.illustsPerPage + '&rest=show';
     return content.fetch('/ajax/user/' + userId + '/illusts/bookmarks' + params, {
             credentials: 'same-origin'
         })
@@ -627,14 +823,14 @@ function getBookmarks() {
         .then(data => {
             pageData.bookmarks[page] = data.works;
             pageData.totalBookmarks = data.total;
-            pageData.totalBookmarkPages = Math.ceil(pageData.totalBookmarks / pageData.bookmarksPerPage);
+            pageData.totalBookmarkPages = Math.ceil(pageData.totalBookmarks / pageData.illustsPerPage);
 
             console.log(pageData.totalBookmarkPages);
 
             let promises = []
-            for (let j = 1; j <= Math.min(pageData.totalBookmarkPages, 5); j++) {
-                let offset = (j - 1) * pageData.bookmarksPerPage;
-                let limit = pageData.bookmarksPerPage;
+            for (let j = 1; j <= pageData.totalBookmarkPages; j++) {
+                let offset = (j - 1) * pageData.illustsPerPage;
+                let limit = pageData.illustsPerPage;
                 let params = '?tag=&offset=' + offset + '&limit=' + limit + '&rest=show';
                 //params += 'is_manga_top=0';
                 let x = content.fetch('/ajax/user/' + userId + '/illusts/bookmarks' + params, {
@@ -749,7 +945,7 @@ function addBookmarks(page_num, illusts) {
         let li = document.createElement('li');
         li.id = "ill-" + parseInt(illust.id)
         li.innerHTML = `
-                <a title="${illust.alt}" class="illust" href="en/artworks/${parseInt(illust.id)}">
+                <a title="${illust.alt}" class="illust" href="https://www.pixiv.net/en/artworks/${parseInt(illust.id)}">
                     <span>
                         ${count}
                         ${nsfw}
@@ -758,7 +954,7 @@ function addBookmarks(page_num, illusts) {
                     <span class="illust-img" style="background-image:url('${illustUrl}');">
                     </span>
                 </a>
-                <a title="${illust.alt}" href="en/artworks/${parseInt(illust.id)}"><span>${illust.title}</span></a>
+                <a title="${illust.alt}" href="https://www.pixiv.net/en/artworks/${parseInt(illust.id)}"><span>${illust.title}</span></a>
         `;
         ul.appendChild(li);
     }
