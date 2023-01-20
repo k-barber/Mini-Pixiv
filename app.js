@@ -28,6 +28,7 @@ const pixiv_dict = {
     "suraimutaoshitesannbyakunenn" : "300_Year_Slime",
     "yannchagyarunoannjousann" : "Anjou_San",
     "shinngekinokyojinn" : "AoT",
+    "atsumarefushigikennkyuubu" : "Atsumare",
     "soredemoayumuhayosetekuru" : "ayumu",
     "bokunohi-ro-akademia" : "BNHA",
     // "beastars" : "Beastars",
@@ -38,6 +39,7 @@ const pixiv_dict = {
     "hitoriboxtsuchinomarumaruseikatsu" : "Hitori_Bocchi",
     "boxtsuchizarokku" : "Bocchi_the_Rock",
     "itainohaiyananodebougyorixyokunikyokufurishitaitoomoimasu" : "Bofuri",
+    "honnzukinogekokujou" : "Bookworm",
     "yofukashinouta" : "Call_of_the_Night",
     "shinnchouyuusha" : "Cautious_Hero",
     "hatarakusaibouburakku" : "Cells_At_Work",
@@ -66,6 +68,7 @@ const pixiv_dict = {
     "faia-emuburemu" : "Fire_Emblem",
     "faia-emuburemufuukasetsugetsu" : "Fire_Emblem",
     "ennennnoshouboutai" : "Fire_Force",
+    "sousounofuri-renn" : "Frieren",
     "do-ruzufuronntorainn" : "Girls_Frontline",
     "goburinnsureiya-" : "Goblin_Slayer",
     "go-rudennkamui" : "Golden_Kamuy",
@@ -127,6 +130,8 @@ const pixiv_dict = {
     "naruto" : "Naruto",
     "gekkannshoujonozakikunn" : "Nozaki_Kun",
     "tsuujoukougekigazenntaikougekidenikaikougekinookaasannhasukidesuka" : "Okaasan_Online",
+    "oniichannhaoshimai" : "Onimai",
+    "onimai" : "Onimai",
     "ousamarannkinngu" : "Ousama_Ranking",
     "オーバーロード" : "Overlord",
     // "LARGE_PLACEHOLDER_TEXT" : "Overwatch",
@@ -167,6 +172,7 @@ const pixiv_dict = {
     // "TEENTITANS" : "Teen_Titans",
     "That Time I Got Reincarnated as a Slime" : "Tensura",
     // "LARGE_PLACEHOLDER_TEXT" : "The_Girl_I_like_forgot_her_glasses",
+    "tomochannhaonnnanoko": "Tomo_Chan",
     "tonikakukawaii" : "Tonikaku_Kawaii",
     "toradora" : "Toradora",
     "uchinokonotamenarabaorehamoshikashitaramaoumotaoserukamoshirenai" : "UchiMusume",
@@ -183,7 +189,7 @@ const pixiv_dict = {
     // "LARGE_PLACEHOLDER_TEXT" : "Wendys",
     "atorieobuwixtsuchihatto" : "Witch_Hat",
     "wotakunikoihamuzukashii" : "Wotakoi",
-    "kumichoumusumetosewagakari": "Yakusas_Guide",
+    "kumichoumusumetosewagakari": "Yakuzas_Guide",
     "youjosennki" : "Youjo_Senki",
     // "LARGE_PLACEHOLDER_TEXT" : "Your_Lie_in_April",
     // "LARGE_PLACEHOLDER_TEXT" : "Yozakura_Family",
@@ -273,5 +279,5 @@ app.post('/api/download', (req, res)=>{
     });
 });
 
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || 40926;
 app.listen(port, ()=> console.log(`Listening on port ${port}`))

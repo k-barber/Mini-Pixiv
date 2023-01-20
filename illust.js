@@ -441,7 +441,7 @@ function saveFile(blob, filename) {
     formData.set("tags", JSON.stringify(pageData.illust.tags.tags))
 
     return new Promise((resolve, reject) => {
-        fetch("http://localhost:8080/api/download", {
+        fetch("http://localhost:40926/api/download", {
             method: "POST",
             mode: "cors",
             headers: {
