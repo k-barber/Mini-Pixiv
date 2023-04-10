@@ -5,6 +5,7 @@ var formidable = require("formidable");
 var sanitize = require("sanitize-filename");
 var axios = require("axios").default;
 const app = express();
+const mime = require("mime");
 app.use(express.json());
 
 // var jsonContent = JSON.parse(contents);
@@ -39,6 +40,7 @@ const pixiv_dict = {
     "Centaur's Worries": "Centaur_No_Nayami",
     "chennso-mann": "Chainsaw_Man",
     "chuunibyoudemokoigashitai": "Chuunibyou",
+    "bareterukakuterunaito": "Cocktail_Knights",
     "senntouinnhakennshimasu": "Combatants",
     "Cult_of_the_lamb": "Cult_of_the_Lamb",
     "cultofthelamb": "Cult_of_the_Lamb",
@@ -90,6 +92,7 @@ const pixiv_dict = {
     "kakegurui": "Kakegurui",
     "kanojomokanojo": "Kanojo_Kanojo",
     "hataagekemonomichi": "Kemono_Michi",
+    'majonotakkyuubinn' : 'Kikis_Delivery',
     // "Kimetsu no Yaiba" : "Kimetsu_No_Yaiba",
     "koihasekaiseifukunoatode ": "Koi_Wa_Sekai",
     "komisannhakomyushoudesu": "Komi_San",
@@ -116,6 +119,7 @@ const pixiv_dict = {
     "Monster Girl Doctor": "Monster_Girl_Doctor",
     "monnsuta-musumenoirunichijou": "Monster_Musume",
     "mushokutennsei": "Mushoku_Tensei",
+    "nazonokanojoekkusu" : "Mysterious_Girlfriend",
     "sennpaigauzaikouhainohanashi": "My_Senpai_Is_Annoying",
     "ijiranaidenagatorosann": "Nagatoro",
     "Why the Hell are You Here Teacher!?": "Nande_Koko_Ni",
@@ -124,6 +128,7 @@ const pixiv_dict = {
     "tsuujoukougekigazenntaikougekidenikaikougekinookaasannhasukidesuka": "Okaasan_Online",
     "oniichannhaoshimai": "Onimai",
     "onimai": "Onimai",
+    "wannpannmann" : "One_Punch_Man",
     "ousamarannkinngu": "Ousama_Ranking",
     "オーバーロード": "Overlord",
     // "LARGE_PLACEHOLDER_TEXT" : "Overwatch",
@@ -169,7 +174,7 @@ const pixiv_dict = {
     "toradora": "Toradora",
     "uchinokonotamenarabaorehamoshikashitaramaoumotaoserukamoshirenai": "UchiMusume",
     "himoutoumaruchann": "Umaru_Chan",
-    // "LARGE_PLACEHOLDER_TEXT" : "Urusei_Yatsura",
+    "uruseiyatsura" : "Urusei_Yatsura",
     // "LARGE_PLACEHOLDER_TEXT" : "Useless_Ponko",
     "uzakichannhaasobitai": "Uzaki_Chan",
     // "LARGE_PLACEHOLDER_TEXT" : "Vinland_Saga",
@@ -199,9 +204,8 @@ function makePath(path) {
 }
 
 app.post('/api/download', (req, res) => {
-    console.log("FILE!")
     var form = new formidable.IncomingForm({
-        uploadDir: 'D:/Downloads/PxDownloader/'
+        uploadDir: 'B:/PxDownloader/'
     });
     form.parse(req, function (err, fields, files) {
         var tags, filename, urls, ugoiraData;
@@ -216,15 +220,8 @@ app.post('/api/download', (req, res) => {
             return;
         }
 
-        console.log(tags);
-        console.log(filename);
-        console.log(urls);
-        console.log(ugoiraData);
-
         var save_locations = [];
         var nsfw = false;
-
-        // console.log(tags);
 
         tags.forEach(function (tag) {
             // for each tag, get the romanji, set that to the key
@@ -238,20 +235,22 @@ app.post('/api/download', (req, res) => {
             if (tag.tag === "R-18" || tag.tag === "R-18G") {
                 nsfw = true;
             }
-        })
+        });
+
+        if (tags.length == 0){
+            nsfw = true;
+            save_locations.push("unkown");
+        }
 
         save_locations = [...new Set(save_locations)] //Get unique
 
-        console.log(save_locations);
-
-        const basepath = 'D:/Downloads/PxDownloader/Sorted/' + (nsfw == true ? "NSFW/" : "SFW/");
+        const basepath = 'B:/PxDownloader/Sorted/' + (nsfw == true ? "NSFW/" : "SFW/");
 
         var promises = [];
 
         for (let index = 0; index < urls.length; index++) {
             const url = urls[index];
-            const extension = url.substring(url.lastIndexOf("."));
-            const filename_full = sanitize(filename + "_" + index) + extension;
+            
 
             var options = {
                 method: 'GET',
@@ -274,7 +273,9 @@ app.post('/api/download', (req, res) => {
 
             promises.push(
                 axios.request(options).then(function (response) {
-                console.log(response.status);
+                    var headers = response.headers;
+                    const extension = mime.getExtension(headers["content-type"]);
+                    const filename_full = sanitize(filename + "_" + index) + "." + extension;
                 console.log(first_path + filename_full);
                 fs.writeFileSync(first_path + filename_full, response.data);
 

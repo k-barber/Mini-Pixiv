@@ -18,6 +18,8 @@
         "webRequestBlocking",
         "webNavigation",
         "contextMenus",
+        "menus",
+        "activeTab",
         "tabs",
         "https://www.pixiv.net/*",
         "https://s.pximg.net/*",
@@ -45,6 +47,10 @@
     }, {
         "matches": ["https://www.pixiv.net/en/artworks/*"],
         "js": ["gif.worker.js", "gif.js", "canvas2apng.js", "illust.js"]
+    }, {
+        "matches": ["https://twitter.com/*/status/*"],
+        "css": ["notyf.min.css"],
+        "js": ["notyf.min.js", "twitter.js"]
     }],
     "web_accessible_resources": [
         "gif.worker.js"

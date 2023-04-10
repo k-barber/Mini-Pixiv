@@ -17,15 +17,15 @@ async function getSelectedTab() {
 
 async function getPixivIllustTabs(){
     return await browser.tabs.query({
-        // currentWindow: true,
+        currentWindow: true,
         discarded: false,
-        url: "https://www.pixiv.net/en/artworks/*"       
+        url: ["https://www.pixiv.net/en/artworks/*", "https://twitter.com/*/status/*"]
     })
 }
 
 var promiseResolve, promiseReject;
 
-async function downloadAllPixivPages() {
+async function downloadAllTabs() {
     var pixiv_tabs = await getPixivIllustTabs();
     console.log(pixiv_tabs);
     for (let index = 0; index < pixiv_tabs.length; index++) {
@@ -37,12 +37,7 @@ async function downloadAllPixivPages() {
         ).then(function(result){
             console.log(result);
             if (result === "Success"){
-                browser.tabs.update(tab.id, {
-                    active: true
-                });
-                setTimeout(()=>{
-                    browser.tabs.remove(tab.id);
-                }, 2500);
+                browser.tabs.remove(tab.id);
             }
         }).catch(function(error){
             console.log(error);
@@ -51,7 +46,7 @@ async function downloadAllPixivPages() {
     console.log("END");
 }
 
-async function downloadPixivPage() {
+async function downloadCurrentTab() {
     var current_tab = await getSelectedTab();
     console.log(current_tab);
     browser.tabs.sendMessage(
@@ -60,7 +55,11 @@ async function downloadPixivPage() {
     )
 }
 
-browser.browserAction.onClicked.addListener(downloadAllPixivPages)
+browser.browserAction.setPopup({
+    popup: "popup/popup.html"
+});
+
+// .onClicked.addListener(downloadAllPixivPages)
 
 const downloadPixivPageMenuId = "download-pixiv-page";
 browser.contextMenus.create({
@@ -80,10 +79,10 @@ browser.contextMenus.create({
 browser.contextMenus.onClicked.addListener((info, tab) => {
     switch (info.menuItemId) {
         case downloadPixivPageMenuId:
-            downloadPixivPage();
+            downloadCurrentTab();
             break;
         case downloadAllPixivPagesMenuId:
-            downloadAllPixivPages();
+            downloadAllTabs();
             break;
     }
 });

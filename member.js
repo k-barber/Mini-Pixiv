@@ -549,7 +549,7 @@ function addList() {
     let modal = document.createElement('div')
     modal.id = 'tag-modal'
     let modal_content = document.createElement('div')
-    modal_content.id = 'modal-content'
+    modal_content.id = 'tag_modal-content'
     let tag_list = document.createElement('ul')
     tag_list.id = 'tag-list';
     let search = document.createElement('input')
