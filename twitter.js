@@ -1,9 +1,7 @@
 var downloading = false;
 
 browser.runtime.onMessage.addListener(async function (message) {
-    console.log(message);
     if (message === "download") {
-        console.log("DOWNLOADING");
         var x = "Failure"
         await download(new Event("ignorable")).then(() => {
             x = "Success";
@@ -74,18 +72,26 @@ async function download(e) {
             });
             reject_download();
         }
+
+        const tweet = document.querySelector("a[href^='" + (new URL(location)).pathname  +"'] time").closest("[data-testid='tweet']"); 
+        
         try {
-            document.querySelector("[data-testid='like']").click();
-            document.querySelector("[data-testid='retweet']").click();
+            tweet.querySelector("[data-testid='like']").click();
+            tweet.querySelector("[data-testid='retweet']").click();
             document.querySelector("[data-testid='retweetConfirm']").click();
         } catch (error) {
             
         }
 
         var urls = [];
-        (document.querySelectorAll("a[href^='" + (new URL(location)).pathname  +"'] img")).forEach((a) => urls.push(a.src.replace(/name=.*($|\&)/, "name=orig")))
-
-        const url_parts = (new URL(location)).pathname.split("/")
+        (tweet.querySelectorAll("a[href^='" + (new URL(location)).pathname  +"'] img")).forEach((a) => urls.push(a.src.replace(/name=.*($|\&)/, "name=orig")))
+        // (tweet.querySelectorAll("[alt='Embedded video']")).forEach((a) => {
+        //     var thumbnail_url = a.src;
+        //     var video_id = thumbnail_url.substring(thumbnail_url.lastIndexOf("/") + 1, thumbnail_url.lastIndexOf("?"));
+        //     urls.push("https://video.twimg.com/tweet_video/" + video_id + ".mp4");
+        // });
+        // (tweet.querySelectorAll("video").forEach((a) => urls.push(a.src)));
+        const url_parts = (new URL(location)).pathname.split("/");
         const filename = "(" + url_parts[1] + ")_" + url_parts[3]; 
 
         const multipage = (urls.length >= 1);
