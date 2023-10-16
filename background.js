@@ -19,7 +19,11 @@ async function getPixivIllustTabs(){
     return await browser.tabs.query({
         currentWindow: true,
         discarded: false,
-        url: ["https://www.pixiv.net/en/artworks/*", "https://twitter.com/*/status/*"]
+        url: [
+            "https://www.pixiv.net/en/artworks/*",
+            "https://twitter.com/*/status/*",
+            "https://gelbooru.com/index.php*s=view*"
+        ]
     })
 }
 

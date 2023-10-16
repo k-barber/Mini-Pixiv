@@ -29,6 +29,7 @@ const pixiv_dict = {
     "bureiburu-": "Blazblue",
     "bleach": "Bleach",
     "burenndoesu": "Blend_S",
+    "buruaka" : "Blue_Archive",
     "hitoriboxtsuchinomarumaruseikatsu": "Hitori_Bocchi",
     "boxtsuchizarokku": "Bocchi_the_Rock",
     "itainohaiyananodebougyorixyokunikyokufurishitaitoomoimasu": "Bofuri",
@@ -115,6 +116,7 @@ const pixiv_dict = {
     "魔人アリス": "Majin_Alice",
     "maoyuu": "Maoyu",
     "metoroido": "Metroid",
+    "mcdonald's" : "MCDonalds",
     "mierukochann": "Mieruko_Chan",
     "Monster Girl Doctor": "Monster_Girl_Doctor",
     "monnsuta-musumenoirunichijou": "Monster_Musume",
@@ -130,6 +132,7 @@ const pixiv_dict = {
     "onimai": "Onimai",
     "wannpannmann" : "One_Punch_Man",
     "ousamarannkinngu": "Ousama_Ranking",
+    "oshinoko" : "Oshi_No_Ko",
     "オーバーロード": "Overlord",
     // "LARGE_PLACEHOLDER_TEXT" : "Overwatch",
     "pannthianndosutokkinnguwizuga-ta-beruto": "Panty_Stocking",
@@ -152,6 +155,7 @@ const pixiv_dict = {
     "刺客伍六七": "Scissor_Seven",
     "sewayakikitsunenosennkosann": "Senko_San",
     "nanatsunotaizai": "Seven_Deadly_Sins",
+    "the elder scrolls v: skyrim" : "Skyrim",
     "tatenoyuushanonariagari": "Shield_Hero",
     "kawaiidakejanaishikimorisann": "Shikimori",
     "shado-hausu": "Shadows_House",
@@ -167,6 +171,7 @@ const pixiv_dict = {
     "karakaijouzunotakagisann": "Takagi_San",
     "bijinnonnnajoushitakizawasann": "Takizawa_San",
     // "TEENTITANS" : "Teen_Titans",
+    "jijouwoshiranaitennkouseigaguiguikuru" : "Transfer_Student",
     "That Time I Got Reincarnated as a Slime": "Tensura",
     // "LARGE_PLACEHOLDER_TEXT" : "The_Girl_I_like_forgot_her_glasses",
     "tomochannhaonnnanoko": "Tomo_Chan",
@@ -219,27 +224,43 @@ app.post('/api/download', (req, res) => {
             res.status(500).end()
             return;
         }
-
         var save_locations = [];
         var nsfw = false;
-
-        tags.forEach(function (tag) {
-            // for each tag, get the romanji, set that to the key
-            // tag lookup via romanji as dict key - no regex, no contains
-            if (pixiv_dict[tag.romaji]) {
-                save_locations.push(pixiv_dict[tag.romaji]);
-            };
-            if (pixiv_dict[tag.tag]) {
-                save_locations.push(pixiv_dict[tag.tag]);
-            };
-            if (tag.tag === "R-18" || tag.tag === "R-18G") {
-                nsfw = true;
-            }
-        });
 
         if (tags.length == 0){
             nsfw = true;
             save_locations.push("unkown");
+        } else {
+            tags.forEach(function (tag) {
+                // for each tag, get the romanji, set that to the key
+                // tag lookup via romanji as dict key - no regex, no contains
+                if (typeof tag === 'string') {
+                    switch (tag) {
+                        case "R-18":
+                        case "R-18G":
+                        case "explicit":
+                        case "questionable":
+                        case "sensitive":
+                            nsfw = true;
+                            break;
+                        default:
+                            break;
+                    }
+                    if (pixiv_dict[tag]) {
+                        save_locations.push(pixiv_dict[tag]);
+                    };
+                } else if (typeof tag === 'object'){
+                    if (pixiv_dict[tag.romaji]) {
+                        save_locations.push(pixiv_dict[tag.romaji]);
+                    };
+                    if (pixiv_dict[tag.tag]) {
+                        save_locations.push(pixiv_dict[tag.tag]);
+                    };
+                    if (tag.tag === "R-18" || tag.tag === "R-18G") {
+                        nsfw = true;
+                    }
+                }
+            });
         }
 
         save_locations = [...new Set(save_locations)] //Get unique
@@ -249,18 +270,19 @@ app.post('/api/download', (req, res) => {
         var promises = [];
 
         for (let index = 0; index < urls.length; index++) {
-            const url = urls[index];
-            
+            const url = urls[index];            
 
             var options = {
                 method: 'GET',
                 responseType: 'arraybuffer', 
-                url: url,
-                headers: {
-                    Referer: 'https://www.pixiv.net/'
-                }
+                url: url
             };
 
+            if (url.includes("pix")){
+                options.headers = {
+                    Referer: 'https://www.pixiv.net/'
+                };
+            }
 
             var first_path = basepath;
             if (save_locations.length === 0) {

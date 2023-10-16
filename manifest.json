@@ -51,6 +51,10 @@
         "matches": ["https://twitter.com/*/status/*"],
         "css": ["notyf.min.css"],
         "js": ["notyf.min.js", "twitter.js"]
+    }, {
+        "matches": ["https://gelbooru.com/index.php*s=view*"],
+        "css": ["notyf.min.css"],
+        "js": ["notyf.min.js", "gelbooru.js"]
     }],
     "web_accessible_resources": [
         "gif.worker.js"

@@ -72,35 +72,36 @@ async function download(e) {
             });
             reject_download();
         }
-
-        const tweet = document.querySelector("a[href^='" + (new URL(location)).pathname  +"'] time").closest("[data-testid='tweet']"); 
         
-        try {
-            tweet.querySelector("[data-testid='like']").click();
-            tweet.querySelector("[data-testid='retweet']").click();
-            document.querySelector("[data-testid='retweetConfirm']").click();
-        } catch (error) {
-            
+        var original_link = document.evaluate("//a[text()='Original image']", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue; 
+
+        const id = (new URLSearchParams(window.location.search)).get('id')
+
+        var urls = [original_link.href];
+
+        var artists = [...document.querySelectorAll(".tag-type-artist>a")];
+        artists = artists.map((x) => {return x.innerText});        
+
+        var tags = [...document.querySelectorAll(".tag-type-copyright>a")];
+        tags = tags.map((x) => {return x.innerText});
+
+        const rating = (document.evaluate("//li[contains(text(),'Rating: ')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue).innerText.trim().split(" ")[1].toLowerCase();
+
+        tags.push(rating);
+
+        if (artists.length == 0) {
+            artists.push("unknown");
         }
 
-        var urls = [];
-        (tweet.querySelectorAll("a[href^='" + (new URL(location)).pathname  +"'] img")).forEach((a) => urls.push(a.src.replace(/name=.*($|\&)/, "name=orig")))
-        // (tweet.querySelectorAll("[alt='Embedded video']")).forEach((a) => {
-        //     var thumbnail_url = a.src;
-        //     var video_id = thumbnail_url.substring(thumbnail_url.lastIndexOf("/") + 1, thumbnail_url.lastIndexOf("?"));
-        //     urls.push("https://video.twimg.com/tweet_video/" + video_id + ".mp4");
-        // });
-        // (tweet.querySelectorAll("video").forEach((a) => urls.push(a.src)));
-        const url_parts = (new URL(location)).pathname.split("/");
-        const filename = "(" + url_parts[1] + ")_" + url_parts[3]; 
+        var filename = "(" + artists.join("_") + ")_" + id; 
 
-        const multipage = (urls.length >= 1);
+        var multipage = (urls.length >= 1);
         var notification = notyf.open({
             type: "waiting",
             message: `<b>Fetching illustration${multipage ? "s" : ""}...</b>`,
         });
 
-        return saveFile(urls, filename).then(function () {
+        return saveFile(urls, filename, tags).then(function () {
             notyf.dismiss(notification);
             resolve_download();
         }).catch(function (error) {
@@ -126,23 +127,16 @@ async function download(e) {
 }
 //https://github.com/victorsouzaleal/twitter-direct-url
 
-function saveFile(urls, filename) {
+function saveFile(urls, filename, tags) {
 
     let formData = new FormData();
     formData.set("urls", JSON.stringify(urls));
     formData.set("filename", filename);
     formData.set("ugoiraData", JSON.stringify({}));
-    formData.set("tags", JSON.stringify([]));
+    formData.set("tags", JSON.stringify(tags));
+    console.log(formData);
 
     return new Promise((resolve, reject) => {
-
-        if (urls.length == 0) {
-            document.querySelector(".harvester").click();
-            setTimeout(() =>{
-                resolve();
-            }, 1000);
-        };
-
         fetch("http://localhost:40926/api/download", {
             method: "POST",
             mode: "cors",
